@@ -1,7 +1,7 @@
 require 'data_mapper'
 require 'resque'
 
-DataMapper.setup(:default, ENV['HEROKU_POSTGRESQLJADE_URL'] || "postgres://localhost/youtell-api")
+DataMapper.setup(:default, ENV['HEROKU_POSTGRESQL_JADE_URL'] || "postgres://localhost/youtell-api")
 
 class Topic
   include DataMapper::Resource
@@ -28,7 +28,7 @@ class Message
   after :create, :send
 
   def send
-    Resque.enqueue(MessageDelivery, id)
+    #Resque.enqueue(MessageDelivery, id)
   end
 end
 
