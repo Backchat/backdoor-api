@@ -1,44 +1,66 @@
-require 'data_mapper'
-require 'resque'
+require 'sinatra/activerecord'
+require 'will_paginate'
+require 'will_paginate/active_record'
 
-DataMapper.setup(:default, ENV['HEROKU_POSTGRESQL_JADE_URL'] || "postgres://localhost/youtell-api")
+class User < ActiveRecord::Base
+  has_many :sessions
 
-class Topic
-  include DataMapper::Resource
+  has_many :created_messages, :class_name => 'Message', :foreign_key => 'sender_id'
+  has_many :received_messages, :class_name => 'Message', :foreign_key => 'receiver_id'
 
-  has n, :messages
-
-  property :id,             Serial
-  property :title,          String,   :required => true
-  property :sender_id,      Integer
-  property :recipient_id,   Integer
+  has_many :created_topics, :class_name => 'Topic', :foreign_key => 'sender_id'
+  has_many :received_topics, :class_name => 'Topic', :foreign_key => 'receiver_id'
 end
 
-class Message
-  include DataMapper::Resource
+class Topic < ActiveRecord::Base
+  has_many :messages
+  belongs_to :sender, :class_name => 'User', :foreign_key => 'sender_id'
+  belongs_to :receiver, :class_name => 'User', :foreign_key => 'receiver_id'
 
+  def as_json(options = {})
+    defaults = {
+      :only => [:id, :title, :created_at, :updated_at],
+    }
+    options ||= {}
+    options = defaults.merge(options)
+    super options
+  end
+
+  def as_json_basic(current_user)
+    owned = current_user.id == receiver_id
+    data = as_json
+    data['topic']['readable'] = owned
+    data['topic']['message_count'] = messages.count if owned
+    data
+  end
+
+  def as_json_full
+    data = as_json
+    data['topic']['messages'] = messages.map &:as_json_basic
+    data
+  end
+end
+
+class Message < ActiveRecord::Base
+  belongs_to :sender, :class_name => 'User', :foreign_key => 'sender_id'
+  belongs_to :receiver, :class_name => 'User', :foreign_key => 'receiver'
   belongs_to :topic
+  has_many :messages
 
-  property :id,             Serial
-  property :content,        Text,     :required => true
-  property :sender_id,      Integer
-  property :topic_id,       Integer,  :required => true
-  property :is_anonymous,   Boolean,  :default => true
+  def as_json_basic
+    as_json :only => [:id, :content, :created_at, :updated_at]
+  end
 
-  after :create, :send
+end
 
-  def send
-    #Resque.enqueue(MessageDelivery, id)
+class Clue < ActiveRecord::Base
+  belongs_to :message
+end
+
+class Session < ActiveRecord::Base
+  belongs_to :user
+  before_save do |obj|
+    obj.token = SecureRandom.hex(16) unless obj.token
   end
 end
 
-class MessageDelivery
-  @queue = :api_messages
-  def self.perform(mid)
-    message = Message.get(mid)
-    puts '-- delivering message: ', message.content
-  end
-end
-
-DataMapper.finalize
-DataMapper.auto_upgrade!
