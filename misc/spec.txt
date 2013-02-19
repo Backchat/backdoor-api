@@ -1,0 +1,228 @@
+YouTell-API specification
+
+1. Models:
+
+a) User {
+    autocreated: boolean
+    registered: boolean
+
+    phone: string
+    email: string
+    uid: string
+    data: serialized hash
+}
+
+b) Gab {
+    title: string
+    user_id: integer
+    receiver_id: integer
+}
+
+c) Message {
+    gab_id: integer
+    user_id: integer
+    content: text
+    read: boolean
+}
+
+d) Clue {
+    user_id: integer
+    gab_id: integer
+    field: string
+    value: string
+}
+
+e) Session {
+    user_id: integer
+    token: string
+}
+
+f) Device {
+    user_id: integer
+    token: string
+}
+
+g) Purchase {
+    user_id: integer
+    receipt: string
+    clues: integer
+}
+
+2. API Calls:
+
+a) POST /login
+
+Params:
+    access_token: string (required, facebook access token)
+    device_token: string (required, device token)
+    user_data:    hash (required, retrieved by app from facebook)
+
+Action:
+    - verifies in facebook that access_token is correct and retrieves uid and email
+    - finds or creates User object matching given uid or email
+    - updates email, uid, data, sets registered = true
+    - finds or creates new Device object, for given device_token
+    - assigns device to current user
+    - creates new Session object
+
+Response:
+    status: string (ok / error)
+    response: {
+        session_token,
+        available_clues
+    }
+
+
+b) GET /gabs
+
+Params:
+    token: string (required, session token)
+    page: integer (optional, default: 1)
+    keywords: string (optional, default: '')
+
+Action:
+    - find all Gabs sent or received by current user
+    - optionally filter by keywords
+    - order by updated_at and paginate
+
+Response:
+    status: string (ok / error)
+    response: [
+        {
+            id: integer
+            title: string
+            total_count: integer (number of all Messages)
+            unread_count: integer (number of new Messages)
+            created_at: datetime
+            updated_at: datetime
+        },
+        ...
+    ]
+
+
+c) POST /gabs
+
+Params:
+    token: string (required, session token)
+    title: string (required)
+    content: text (required)
+    user_data: hash (required)
+    receiver_uid: string (optional)
+    receiver_phone: string (optional)
+    receiver_email: string (optional)
+
+Action:
+    - find or create User by uid, email or phone
+    - if User didn't exist, set autocreated=true, and initial data
+    - create new Gab with given title and receiver
+    - rest the same as in POST /gabs/<gab id>
+
+Response:
+    - same as in POST /gabs/<gab id>
+
+
+d) GET /gabs/<gab id>
+
+Params:
+    token: string (required, session token)
+
+Action:
+    - find Gab with all Messages
+    - mark all messages as read
+
+Response:
+    status: string (ok / error)
+    response: {
+        id: integer
+        title: string
+        total_count: integer (number of all Messages)
+        unread_count: integer (number of new Messages)
+        messages: [
+            {
+                id: integer
+                content: text
+                is_read: boolean
+                created_at: datetime
+                updated_at: datetime
+            },
+            ...
+        ]
+
+        // only if current user is a receiver
+        clues: [
+            {
+            field: string
+            value: string
+            },
+            ...
+        ]
+
+        created_at: datetime
+        updated_at: datetime
+    }
+
+
+
+
+e) POST /gabs/<gab id>
+
+Params:
+    token: string (required, session token)
+    content: text (required)
+    user_data: hash (required)
+
+Action:
+    - update User.data with user_data
+    - find given Gab, ensure current_user is either author or receiver
+    - create new Message with given content
+    - create Resque job to deliver Message to the receiver
+
+Response:
+    status: string (ok / error)
+    response: hash (same as single entry in GET /gabs)
+
+
+f) POST /gab/<id>/clues
+
+Params
+    token: string (required, session token)
+
+Action:
+    - find given Gab, ensure current_user is a receiver
+    - find existing Clues for given Gab
+    - if count > max count for single Gab, respond with error
+    - if user has used all his purchased clues, respond with error
+    - create new Clue
+
+Response:
+    status: string (ok / error)
+    response: {
+        field,
+        value
+    }
+
+g) POST /purchases
+
+Params
+    token: string (required, session token)
+    receipt: string (required)
+
+Action
+    - make sure receipt hasn't been already used
+    - verify receipt in apple store
+    - create new Purchase
+
+Response
+    status: string (ok / error)
+    response: integer (User.available_clues)
+
+
+3. Resque jobs:
+
+a) deliver-message (message_id)
+
+- find given Message and User
+- if User has any devices registered, notify by push
+- elsif User has email, notify by email
+- elsif User has facebook_uid, notify by Facebook, using global app's access_token
+- elsif User has phone, notify by Twilio
