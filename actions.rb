@@ -24,7 +24,7 @@ post '/users/login' do
 
   err 403, 'forbidden' unless data['id']
 
-  user = User.find_by_uid(data['uid'])
+  user = User.find_by_uid(data['id'])
   user = User.find_by_email(data['email']) unless user
   user = User.create unless user
 
@@ -40,6 +40,7 @@ post '/users/login' do
 
   device = Device.find_or_create_by_token(device_token)
   device.update_attributes(:user => user)
+  device.touch
 
   session = user.sessions.create
 
