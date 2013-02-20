@@ -56,8 +56,6 @@ class User < ActiveRecord::Base
   end
 
   def email_message(msg)
-    return if email.blank?
-
     Pony.mail(
       :to => email,
       :via => :smtp,
@@ -70,8 +68,6 @@ class User < ActiveRecord::Base
   end
 
   def sms_message(msg)
-    return if phone.blank?
-
     client = Twilio::REST::Client.new TWILIO_SID, TWILIO_TOKEN
     client.account.sms.messages.create(
       :from => '+14248357900',
@@ -106,7 +102,7 @@ class User < ActiveRecord::Base
     elsif !uid.blank?
       fetch_facebook_data
       email_message(msg)
-    elsif false and !phone.blank?
+    elsif !phone.blank?
       sms_message(msg)
     else
       # NOTREACHED
