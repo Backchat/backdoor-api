@@ -1,0 +1,79 @@
+require 'csv'
+require 'set'
+require 'json'
+require 'bzip2'
+
+require './api'
+
+# convert data from fakenamegenerator.com
+def fakenames_csv_to_json
+
+  data = {
+    :first => Set.new,
+    :last => Set.new,
+    :username => Set.new
+  }
+
+  CSV.foreach("fn.csv", :headers => true, :quote_char => "~") do |row|
+    data[:first].add row['GivenName']
+    data[:last].add row['Surname']
+    data[:username].add row['Username']
+  end
+
+  data[:first] = data[:first].to_a
+  data[:last] = data[:last].to_a
+  data[:username] = data[:username].to_a
+
+  puts data.to_json
+
+end
+
+def generate_users(count)
+  reader = Bzip2::Reader.new(File.open('misc/names.json.bz2'))
+  data = JSON.parse(reader.read)
+
+  (1..count).each do |i|
+    (puts 'complete: %d' % i) if i % 1000 == 0
+    uid = 'x%015d' % Random.rand(999999999999999)
+    phone = 'x+%11d' % Random.rand(99999999999)
+    username = '%s%d' % [data['username'].sample, Random.rand(99999)]
+    username = username.tr('^A-Za-z0-9', '')
+    email = 'caplabs+%s@mailmetrash.com' % username
+    first_name = data['first'].sample
+    last_name = data['last'].sample
+
+    user = User.create(
+      :autocreated => false,
+      :registered => true,
+      :fake => true,
+      :phone => phone,
+      :email => email,
+      :uid => uid,
+      :data => {
+        :id => uid,
+        :name => '%s %s' % [first_name, last_name],
+        :first_name => first_name,
+        :last_name => last_name,
+        :username => username,
+        :gender => 'female',
+        :email => email,
+        :timezone => 1,
+        :locale => 'en_US',
+        :updated_time => '2012-12-07T19:13:09+0000'
+      }
+    )
+
+    user.sessions.create
+    user.sessions.create
+    user.sessions.create
+    user.sessions.create
+
+    user.devices.create(:token => SecureRandom.hex(16))
+    user.devices.create(:token => SecureRandom.hex(16))
+
+    user.purchases.create(:receipt => SecureRandom.hex(16))
+    user.purchases.create(:receipt => SecureRandom.hex(16))
+  end
+end
+
+generate_users(500000)

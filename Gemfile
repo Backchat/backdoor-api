@@ -14,6 +14,10 @@ gem 'will_paginate', '~> 3.0.0'
 gem 'pony'
 gem 'twilio-ruby'
 gem 'grocer'
+gem 'newrelic_rpm'
+
+# for fake user generator
+gem 'bzip2-ruby'
 
 group :development do
   gem 'rerun'

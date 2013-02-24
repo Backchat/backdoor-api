@@ -9,6 +9,7 @@ require 'grocer'
 
 class User < ActiveRecord::Base
   has_many :sessions, :dependent => :destroy
+  has_many :devices, :dependent => :destroy
   has_many :purchases
   has_many :clues
   has_many :gabs
@@ -95,6 +96,8 @@ class User < ActiveRecord::Base
   end
 
   def deliver_message(msg)
+    return if fake
+
     if false and devices.count > 0
       push_message(msg)
     elsif !email.blank?
