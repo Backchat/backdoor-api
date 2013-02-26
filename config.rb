@@ -25,6 +25,8 @@ TWILIO_TOKEN = '1346022d42253959d79e47b6c171914f'
 APN_CERT = 'cert.pem'
 APN_PASS = ''
 
+BLITZ_TOKEN = '36a9c080ff6fdce0e32c66c3eb3edd9e'
+
 configure :production do
   require 'newrelic_rpm'
 end

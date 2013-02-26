@@ -22,4 +22,5 @@ gem 'bzip2-ruby'
 group :development do
   gem 'rerun'
   gem 'rb-inotify', '~> 0.8.8'
+  gem 'blitz'
 end

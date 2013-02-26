@@ -16,7 +16,7 @@ class User < ActiveRecord::Base
 
   serialize :data
 
-  def self.my_find_or_create(uid, email, phone)
+  def self.my_find_or_create(uid, email, phone, fake = false)
     user = User.find_or_create_by_uid(uid) unless uid.blank?
     user = User.find_or_create_by_email(email) unless user || email.blank?
     user = User.find_or_create_by_phone(phone) unless user || phone.blank?
@@ -28,6 +28,7 @@ class User < ActiveRecord::Base
     user.email = email if user.email.blank?
     user.phone = phone if user.phone.blank?
     user.data = { 'email' => email, 'id' => uid } if user.data == {}
+    user.fake = fake
     user.save
 
     user
@@ -133,16 +134,33 @@ class Gab < ActiveRecord::Base
 
   cattr_accessor :current_user
 
+  def self.get_recent(page)
+    uid = current_user.id
+    Gab
+      .select(
+        "*, " +
+        "(SELECT COUNT(*) FROM messages WHERE messages.gab_id = gabs.id) AS my_total_count, " +
+        "(SELECT COUNT(*) FROM messages WHERE messages.gab_id = gabs.id AND messages.read = false AND messages.user_id != #{uid}) AS my_unread_count "
+      )
+      .where("user_id = ? OR receiver_id = ?", uid, uid)
+      .order('updated_at')
+      .paginate(:page => page.to_i, :per_page => 10)
+  end
+
   def is_sent
     user_id == current_user.id
   end
 
   def total_count
-    messages.count
+    respond_to?(:my_total_count) \
+      ? self.my_total_count.to_i \
+      : messages.count
   end
 
   def unread_count
-    messages.where('user_id != ?', current_user).where(:read => false).count
+    respond_to?(:my_unread_count) \
+      ? self.my_unread_count.to_i \
+      : messages.where('user_id != ?', current_user).where(:read => false).count
   end
 
   def mark_read

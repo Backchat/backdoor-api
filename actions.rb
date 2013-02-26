@@ -1,6 +1,8 @@
 require 'httpclient'
 
 before do
+  @blitz_mode = (params[:blitz_token] == BLITZ_TOKEN)
+
   return if request.path == '/users/login' or request.path == '/admin'
 
   @session = Session.find_by_token(params[:session_token])
@@ -51,10 +53,9 @@ post '/users/login' do
 end
 
 get '/gabs' do
-  ok Gab
-    .where('user_id = ? OR receiver_id = ?', @user, @user)
-    .order('updated_at')
-    .paginate(:page => params[:page].to_i)
+  page = params[:page]
+  err 400, 'invalid request' if page.blank?
+  ok Gab.get_recent(page)
 end
 
 
@@ -69,6 +70,7 @@ post '/gabs' do
     params[:receiver_uid],
     params[:receiver_email],
     params[:receiver_phone],
+    @blitz_mode
   )
 
   err 404, 'user not found' unless receiver
@@ -151,6 +153,10 @@ post '/purchases' do
   )
 
   ok @user.available_clues
+end
+
+get '/ping' do
+  ok 'pong'
 end
 
 get '/admin' do
