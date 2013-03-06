@@ -248,9 +248,6 @@ end
 
 class Session < ActiveRecord::Base
   belongs_to :user
-  before_save do |obj|
-    obj.token = SecureRandom.hex(16) unless obj.token
-  end
 end
 
 class Device < ActiveRecord::Base

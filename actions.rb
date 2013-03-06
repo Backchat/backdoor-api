@@ -4,19 +4,18 @@ before do
   @blitz_mode = (params[:blitz_token] == BLITZ_TOKEN)
   return if request.path == '/users/login' or request.path == '/admin'
 
-  @session = Session.find_by_token(params[:session_token])
-  err 403, 'not authorized' unless @session
-  @user = @session.user
-  Gab.current_user = @user
-end
-
-post '/users/login' do
-
   access_token = params[:access_token]
   device_token = params[:device_token]
   user_data = params[:user_data]
 
-  err 400, 'invalid request' if access_token.nil? or device_token.nil? or user_data.nil?
+  err 400, 'invalid request' if access_token.nil?
+
+  @session = Session.find_by_token(access_token)
+  if @session
+    @user = @session.user
+    Gab.current_user = @user
+    return
+  end
 
   client = HTTPClient.new
   url = 'https://graph.facebook.com/me'
@@ -29,6 +28,7 @@ post '/users/login' do
   user = User.find_by_email(data['email']) unless user
   user = User.create unless user
 
+  user_data = {} if user_data.nil?
   user_data = user_data.update(data)
   user_data = user.data.update(user_data)
 
@@ -39,16 +39,15 @@ post '/users/login' do
     :registered => true
   )
 
-  device = Device.find_or_create_by_token(device_token)
-  device.update_attributes(:user => user)
-  device.touch
+  unless device_token.nil?
+    device = Device.find_or_create_by_token(device_token)
+    device.update_attributes(:user => user)
+    device.touch
+  end
 
-  session = user.sessions.create
-
-  ok(
-    :session_token => session.token,
-    :available_clues => user.available_clues,
-  )
+  @session = user.sessions.create(:token => access_token)
+  @user = @session.user
+  Gab.current_user = @user
 end
 
 get '/gabs' do

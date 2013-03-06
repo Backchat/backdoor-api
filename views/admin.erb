@@ -88,7 +88,7 @@ $('.request-method').change(function(){
 
     var myparams = params[val] || {}
     if (val != 'POST;users/login') {
-        myparams['session_token'] = $('.session-token').val();
+        myparams['access_token'] = $('.facebook-token').val();
     }
 
     $('.request-params').val(JSON.stringify(myparams, null, " "));
