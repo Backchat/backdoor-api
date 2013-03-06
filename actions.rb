@@ -2,7 +2,6 @@ require 'httpclient'
 
 before do
   @blitz_mode = (params[:blitz_token] == BLITZ_TOKEN)
-
   return if request.path == '/users/login' or request.path == '/admin'
 
   @session = Session.find_by_token(params[:session_token])
