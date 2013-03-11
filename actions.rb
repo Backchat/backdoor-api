@@ -1,96 +1,72 @@
-require 'httpclient'
 
 before do
-  @blitz_mode = (params[:blitz_token] == BLITZ_TOKEN)
-  return if request.path == '/users/login' or request.path == '/admin'
-
   access_token = params[:access_token]
   device_token = params[:device_token]
   user_data = params[:user_data]
+  blitz_token = params[:blitz_token]
+
+  return if request.path == '/admin'
 
   err 400, 'invalid request' if access_token.nil?
 
-  @session = Session.find_by_token(access_token)
-  if @session
-    @user = @session.user
-    Gab.current_user = @user
-    return
-  end
+  @blitz_mode = (blitz_token == BLITZ_TOKEN)
 
-  client = HTTPClient.new
-  url = 'https://graph.facebook.com/me'
-  resp = client.get(url, :access_token => access_token)
-  data = JSON.parse(resp.content)
+  token = Token.authenticate(access_token, user_data)
+  device = Device.my_find_or_create(device_token, token.user)
 
-  err 403, 'forbidden' unless data['id']
-
-  user = User.find_by_uid(data['id'])
-  user = User.find_by_email(data['email']) unless user
-  user = User.create unless user
-
-  user_data = {} if user_data.nil?
-  user_data = user_data.update(data)
-  user_data = user.data.update(user_data)
-
-  user.update_attributes(
-    :email => data['email'],
-    :uid => data['id'],
-    :data => user_data,
-    :registered => true
-  )
-
-  unless device_token.nil?
-    device = Device.find_or_create_by_token(device_token)
-    device.update_attributes(:user => user)
-    device.touch
-  end
-
-  @session = user.sessions.create(:token => access_token)
-  @user = @session.user
-  Gab.current_user = @user
+  @user = token.user
+  Gab.current_user = token.user
 end
 
 get '/gabs' do
   page = params[:page]
   err 400, 'invalid request' if page.blank?
-  ok Gab.get_recent(page)
+
+  time = Time.now
+
+  gabs = Gab
+    .where('user_id = ?', @user)
+    .order('last_date DESC')
+    .paginate(:page => page.to_i, :per_page => 10)
+
+  ok :gabs => gabs, :time => time
 end
 
 
 post '/gabs' do
-  title = params[:title]
   content = params[:content]
   user_data = params[:user_data]
 
-  err 400, 'invalid request' if title.blank? or content.blank? or user_data.blank?
+  err 400, 'invalid request' if content.blank? or user_data.blank?
 
-  receiver = User.my_find_or_create(
-    params[:receiver_uid],
-    params[:receiver_email],
-    params[:receiver_phone],
-    @blitz_mode
-  )
+  gab_id = params[:gab_id]
 
-  err 404, 'user not found' unless receiver
+  unless gab_id.nil?
+    gab = Gab.find(gab_id)
+  else
+    receiver_uid = params[:receiver_uid]
+    receiver_email = params[:receiver_email]
+    receiver_phone = params[:receiver_phone]
+    receiver_name = params[:receiver_name]
+    receiver = User.my_find_or_create(receiver_uid, receiver_email, receiver_phone, @blitz_mode)
+    err 404, 'user not found' unless receiver
 
-  gab = @user.gabs.create(
-    :title => title,
-    :receiver => receiver
-  )
+    gab = Gab.my_create(@user, receiver, receiver_name)
+  end
+
+  gab.create_message(content, true)
+  gab.related_gab.create_message(content, false)
 
   @user.update_attributes(:data => @user.data.update(user_data))
 
-  message = gab.messages.create(
-    :content => content,
-    :user => @user
-  )
-
-  ok gab
+  json = gab.as_json_full
+  gab.mark_read
+  ok json
 end
 
 get '/gabs/:id' do
   gab = Gab
-    .where('user_id = ? OR receiver_id = ?', @user, @user)
+    .where('user_id = ?', @user)
     .includes(:messages)
     .find(params[:id])
 
@@ -99,25 +75,6 @@ get '/gabs/:id' do
   ok json
 end
 
-post '/gabs/:id' do
-  content = params[:content]
-  user_data = params[:user_data]
-
-  err 400, 'invalid request' if content.blank? or user_data.blank?
-
-  @user.update_attributes(:data => @user.data.update(user_data))
-
-  gab = Gab
-    .where('user_id = ? OR receiver_id = ?', @user, @user)
-    .find(params[:id])
-
-  message = gab.messages.create(
-    :content => content,
-    :user => @user
-  )
-
-  ok gab
-end
 
 post '/gabs/:id/clues' do
   gab = Gab
@@ -151,6 +108,21 @@ post '/purchases' do
   )
 
   ok @user.available_clues
+end
+
+post '/feedbacks' do
+  content = params[:content]
+  rating = params[:rating]
+
+  err 400 if content.blank? or rating.blank?
+
+  Feedback.create(
+    :user => @user,
+    :content => content,
+    :rating => rating
+  )
+
+  ok {}
 end
 
 get '/ping' do

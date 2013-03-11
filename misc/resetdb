@@ -1,0 +1,3 @@
+dropdb youtell-api
+createdb youtell-api
+rake db:migrate

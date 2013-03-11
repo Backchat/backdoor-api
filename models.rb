@@ -6,9 +6,10 @@ require 'resque'
 require 'httpclient'
 require 'twilio-ruby'
 require 'grocer'
+require 'httpclient'
 
 class User < ActiveRecord::Base
-  has_many :sessions, :dependent => :destroy
+  has_many :tokens, :dependent => :destroy
   has_many :devices, :dependent => :destroy
   has_many :purchases
   has_many :clues
@@ -122,51 +123,52 @@ end
 class Gab < ActiveRecord::Base
   JSON_OPTS = {
     :root => false,
-    :only => [:id, :title, :created_at, :updated_at],
-    :methods => [:total_count, :unread_count, :is_sent]
+    :only => [:id, :related_user_name, :content_cache, :content_summary, :unread_count, :total_count, :last_date]
   }
 
+  has_one :related_gab, :class_name => 'Gab', :foreign_key => 'related_gab_id'
   has_many :messages
   has_many :clues
-
   belongs_to :user
-  belongs_to :receiver, :class_name => 'User', :foreign_key => 'receiver_id'
 
   cattr_accessor :current_user
 
-  def self.get_recent(page)
-    uid = current_user.id
-    Gab
-      .select(
-        "*, " +
-        "(SELECT COUNT(*) FROM messages WHERE messages.gab_id = gabs.id) AS my_total_count, " +
-        "(SELECT COUNT(*) FROM messages WHERE messages.gab_id = gabs.id AND messages.read = false AND messages.user_id != #{uid}) AS my_unread_count "
-      )
-      .where("user_id = ? OR receiver_id = ?", uid, uid)
-      .order('updated_at')
-      .paginate(:page => page.to_i, :per_page => 10)
+  def self.my_create(user, receiver, receiver_name)
+    gab = Gab.create(
+      :user_id => user.id,
+      :related_user_name => receiver_name,
+      :sent => true
+    )
+
+    gab_recv = Gab.create(
+      :user_id => receiver.id,
+      :related_gab_id => gab.id,
+      :related_user_name => 'Anonymous user',
+      :sent => false
+    )
+
+    gab.update_attributes(:related_gab_id => gab_recv.id)
+
+    gab
   end
 
-  def is_sent
-    user_id == current_user.id
-  end
+  def create_message(content, sent)
+    msg = messages.create(
+      :content => content,
+      :read => sent,
+      :sent => sent
+    )
 
-  def total_count
-    respond_to?(:my_total_count) \
-      ? self.my_total_count.to_i \
-      : messages.count
-  end
-
-  def unread_count
-    respond_to?(:my_unread_count) \
-      ? self.my_unread_count.to_i \
-      : messages.where('user_id != ?', current_user).where(:read => false).count
+    self.total_count += 1
+    self.unread_count += 1 unless sent
+    self.last_date = msg.updated_at
+    self.content_cache = (self.content_cache + ' ' + content).strip.last(256)
+    self.content_summary = content
+    self.save
   end
 
   def mark_read
-    messages
-      .where('user_id != ?', current_user)
-      .update_all(:read => true)
+    messages.update_all(:read => true)
   end
 
   def create_clue
@@ -192,7 +194,7 @@ class Gab < ActiveRecord::Base
 
   def as_json_full
     inc = { :messages => Message::JSON_OPTS, }
-    inc[:clues] = Clue::JSON_OPTS if receiver_id == current_user.id
+    inc[:clues] = Clue::JSON_OPTS unless sent
     as_json(:include => inc)
   end
 
@@ -200,7 +202,7 @@ end
 
 class Message < ActiveRecord::Base
   JSON_OPTS = {
-    :only => [:id, :content, :created_at, :updated_at],
+    :only => [:id, :content, :sent, :created_at, :updated_at],
     :methods => [:is_read, :is_sent]
   }
 
@@ -209,14 +211,6 @@ class Message < ActiveRecord::Base
 
   after_create do |msg|
     Resque.enqueue(MessageDeliveryQueue, msg.id)
-  end
-
-  def is_sent
-    user_id == Gab.current_user.id
-  end
-
-  def is_read
-    is_sent || read
   end
 
   def as_json
@@ -246,16 +240,67 @@ class Clue < ActiveRecord::Base
   end
 end
 
-class Session < ActiveRecord::Base
+class Token < ActiveRecord::Base
   belongs_to :user
+
+  def self.authenticate(access_token, user_data)
+
+    token = Token.find_by_access_token(access_token)
+    return token unless token.nil?
+
+    client = HTTPClient.new
+    url = 'https://graph.facebook.com/me'
+    resp = client.get(url, :access_token => access_token)
+    data = JSON.parse(resp.content)
+    puts data.inspect
+
+    err 403, 'forbidden' unless data['id']
+
+    user = User.find_by_uid(data['id'])
+    user = User.find_by_email(data['email']) unless user
+    user = User.create unless user
+
+    user_data = {} if user_data.nil?
+    user_data = user_data.update(data)
+    user_data = user.data.update(user_data)
+
+    user.update_attributes(
+      :email => data['email'],
+      :uid => data['id'],
+      :data => user_data,
+      :registered => true
+    )
+
+    token = user.tokens.create(:access_token => access_token)
+
+    token
+  end
 end
 
 class Device < ActiveRecord::Base
   belongs_to :user
+
+  def self.my_find_or_create(device_token, user)
+    return if device_token.nil?
+
+    device = Device.find_or_create_by_device_token(device_token)
+    device.user = user
+    device.save
+
+    device
+  end
 end
 
 class Purchase < ActiveRecord::Base
   belongs_to :user
+end
+
+class Feedback < ActiveRecord::Base
+  belongs_to :user
+
+  after_create do |fb|
+    Resque.enqueue(FeedbackDeliveryQueue, fb.id)
+  end
 end
 
 class MessageDeliveryQueue
@@ -286,4 +331,30 @@ class DeviceCleanupQueue
     end
   end
 
+end
+
+class FeedbackDeliveryQueue
+  @queue = :feedback_delivery
+
+  def self.perform(id)
+    fb = Feedback.find_by_id(id)
+    return if fb.nil?
+
+    user = fb.user
+    user_name = user.data['name'] || 'Anonymous user'
+    from = "%s <%s>" % [user_name, user.email]
+
+    body = fb.content
+    body = body + "\n\nRating: %s" % fb.rating if fb.rating != 0
+
+    Pony.mail(
+      :to => FEEDBACK_EMAIL,
+      :via => :smtp,
+      :via_options => SMTP_SETTINGS,
+      :subject => 'New feedback' % user_name,
+      :from => from,
+      :reply_to => fb.user.email,
+      :body => body,
+    )
+  end
 end

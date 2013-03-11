@@ -1,2 +1,2 @@
 #!/bin/sh
-rerun 'thin --ssl --debug -p 7564 start'
+rerun 'thin  --debug -p 7564 start'

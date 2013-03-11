@@ -1,0 +1,1 @@
+VVERBOSE=1 QUEUE="message_delivery,feedback_delivery,device_cleanup" bundle exec rake resque:work

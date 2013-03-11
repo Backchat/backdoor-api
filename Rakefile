@@ -12,4 +12,10 @@ namespace :resque do
 
     Resque.schedule = {"DeviceCleanupQueue"=>{"cron"=>"0 * * * *"}}
   end
+
+  task :clear  do
+    Resque.redis.del 'queue:message_delivery'
+    Resque.redis.del 'queue:feedback_delivery'
+    Resque.redis.del 'queue:device_cleanup'
+  end
 end
