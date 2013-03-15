@@ -63,7 +63,7 @@ class User < ActiveRecord::Base
       :to => email,
       :via => :smtp,
       :via_options => SMTP_SETTINGS,
-      :subject => msg.gab.title,
+      :subject => 'New message on YouTell',
       :from => 'YouTell Mobile <noreply@youtell.com>',
       :reply_to => 'noreply@youtell.com',
       :body => msg.content + "\n\nMessage sent by YouTell Mobile"
@@ -82,16 +82,16 @@ class User < ActiveRecord::Base
   def push_message(msg)
     pusher = Grocer.pusher(
       certificate:  APN_CERT,
-      passphrase:   APN_PASS,
-      gateway:      "gateway.push.apple.com",
-      port:         2195,
-      retries:      3
+      passphrase:   APN_PASS
     )
 
     devices.each do |device|
+      puts "pushing to: ", device.device_token
       notification = Grocer::Notification.new(
-        device_token: device.token,
-        alert:        "New message from YouTell"
+        device_token: device.device_token,
+        alert:        "New message from YouTell",
+        sound:        'default',
+        custom:       { :gab_id => msg.gab.id }
       )
       pusher.push(notification)
     end
@@ -100,7 +100,7 @@ class User < ActiveRecord::Base
   def deliver_message(msg)
     return if fake
 
-    if false and devices.count > 0
+    if devices.count > 0
       push_message(msg)
     elsif !email.blank?
       email_message(msg)
@@ -152,19 +152,40 @@ class Gab < ActiveRecord::Base
     gab
   end
 
+  def self.dump_updated(user, time, messages)
+    fields = [:id, :related_user_name, :content_cache, :content_summary, :unread_count, :total_count, :last_date]
+
+    return [] if messages.count == 0
+
+    gab_ids = messages.map { |x| x['gab_id'] }
+
+    sql = Gab
+      .select(fields)
+      .where('id in (?)', gab_ids)
+      .order('last_date DESC')
+      .to_sql
+
+    gabs = ActiveRecord::Base.connection.select_all(sql)
+
+    gabs
+  end
+
   def create_message(content, sent)
     msg = messages.create(
       :content => content,
       :read => sent,
-      :sent => sent
+      :sent => sent,
+      :user => user,
     )
 
     self.total_count += 1
     self.unread_count += 1 unless sent
     self.last_date = msg.updated_at
-    self.content_cache = (self.content_cache + ' ' + content).strip.last(256)
+    self.content_cache = (self.content_cache + ' ' + content).strip.last(255)
     self.content_summary = content
     self.save
+
+    Resque.enqueue(MessageDeliveryQueue, msg.id) unless sent
   end
 
   def mark_read
@@ -203,14 +224,29 @@ end
 class Message < ActiveRecord::Base
   JSON_OPTS = {
     :only => [:id, :content, :sent, :created_at, :updated_at],
-    :methods => [:is_read, :is_sent]
   }
 
   belongs_to :user
   belongs_to :gab
 
-  after_create do |msg|
-    Resque.enqueue(MessageDeliveryQueue, msg.id)
+  def self.dump_updated(user, time)
+    fields = [:id, :gab_id, :content, :sent, :deleted, :created_at]
+
+    sql = Message
+      .select(fields)
+      .where('user_id = ?', user)
+      .where('updated_at > ?', time)
+      .order('created_at DESC')
+      .limit(200)
+      .to_sql
+
+    values = ActiveRecord::Base.connection.select_all(sql)
+
+    values.each do |val|
+      val['content'] = '' if val['deleted'] == 't'
+    end
+
+    values
   end
 
   def as_json
@@ -220,8 +256,7 @@ class Message < ActiveRecord::Base
   end
 
   def deliver
-    my_user = (user.id == gab.user.id) ? gab.receiver : gab.user
-    my_user.deliver_message self
+    gab.user.deliver_message self
   end
 end
 

@@ -37,6 +37,7 @@ class CreateTables < ActiveRecord::Migration
 
     create_table :messages do |t|
       t.integer   :gab_id
+      t.integer   :user_id
       t.text      :content
       t.boolean   :read,          :default => false
       t.boolean   :deleted,       :default => false
@@ -45,6 +46,7 @@ class CreateTables < ActiveRecord::Migration
     end
 
     add_index :messages, :gab_id
+    add_index :messages, :user_id
 
     create_table :clues do |t|
       t.integer   :user_id

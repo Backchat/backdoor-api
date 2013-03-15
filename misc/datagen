@@ -76,4 +76,21 @@ def generate_users(count)
   end
 end
 
-generate_users(500000)
+def generate_names(count)
+  reader = Bzip2::Reader.new(File.open('misc/names.json.bz2'))
+  data = JSON.parse(reader.read)
+
+  fnames = []
+  lnames = []
+
+  (1..count).each do |i|
+    fnames << data['first'].sample
+    lnames << data['last'].sample
+  end
+
+  puts fnames.inspect
+  puts lnames.inspect
+
+end
+
+generate_names(50)

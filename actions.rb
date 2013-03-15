@@ -16,20 +16,18 @@ before do
 
   @user = token.user
   Gab.current_user = token.user
+
+  @user.update_attributes(:data => @user.data.update(user_data)) unless user_data.blank?
 end
 
 get '/gabs' do
-  page = params[:page]
-  err 400, 'invalid request' if page.blank?
+  time = params[:time]
+  time = time.blank? ? Time.at(0) : Time.parse(time)
 
-  time = Time.now
+  messages = Message.dump_updated(@user, time)
+  gabs = Gab.dump_updated(@user, time, messages)
 
-  gabs = Gab
-    .where('user_id = ?', @user)
-    .order('last_date DESC')
-    .paginate(:page => page.to_i, :per_page => 10)
-
-  ok :gabs => gabs, :time => time
+  ok :gabs => gabs, :messages => messages, :sync_time => time
 end
 
 
@@ -37,7 +35,7 @@ post '/gabs' do
   content = params[:content]
   user_data = params[:user_data]
 
-  err 400, 'invalid request' if content.blank? or user_data.blank?
+  err 400, 'invalid request' if content.blank?
 
   gab_id = params[:gab_id]
 
@@ -52,16 +50,20 @@ post '/gabs' do
     err 404, 'user not found' unless receiver
 
     gab = Gab.my_create(@user, receiver, receiver_name)
+    puts gab.id
   end
 
   gab.create_message(content, true)
   gab.related_gab.create_message(content, false)
 
-  @user.update_attributes(:data => @user.data.update(user_data))
-
   json = gab.as_json_full
   gab.mark_read
-  ok json
+
+  time = Time.at(0)
+  messages = Message.dump_updated(@user, time)
+  gabs = Gab.dump_updated(@user, time, messages)
+
+  ok :gab_id => gab.id, :gabs => gabs, :messages => messages, :sync_time => time
 end
 
 get '/gabs/:id' do
