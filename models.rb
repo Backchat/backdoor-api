@@ -8,6 +8,7 @@ require 'twilio-ruby'
 require 'grocer'
 require 'httpclient'
 
+
 class User < ActiveRecord::Base
   has_many :tokens, :dependent => :destroy
   has_many :devices, :dependent => :destroy
@@ -121,11 +122,6 @@ class User < ActiveRecord::Base
 end
 
 class Gab < ActiveRecord::Base
-  JSON_OPTS = {
-    :root => false,
-    :only => [:id, :related_user_name, :content_cache, :content_summary, :unread_count, :total_count, :last_date]
-  }
-
   has_one :related_gab, :class_name => 'Gab', :foreign_key => 'related_gab_id'
   has_many :messages
   has_many :clues
@@ -153,7 +149,7 @@ class Gab < ActiveRecord::Base
   end
 
   def self.dump_updated(user, time, messages)
-    fields = [:id, :related_user_name, :content_cache, :content_summary, :unread_count, :total_count, :last_date]
+    fields = [:id, :related_user_name, :content_cache, :content_summary, :unread_count, :total_count, date_sql(:last_date)]
 
     return [] if messages.count == 0
 
@@ -190,6 +186,17 @@ class Gab < ActiveRecord::Base
 
   def mark_read
     messages.update_all(:read => true)
+    self.unread_count = 0
+    self.save
+  end
+
+  def mark_deleted
+    messages.update_all(:deleted => true)
+    self.total_count = 0
+    self.unread_count = 0
+    self.content_cache = ''
+    self.content_summary = ''
+    self.save
   end
 
   def create_clue
@@ -206,31 +213,14 @@ class Gab < ActiveRecord::Base
       :value => value
     )
   end
-
-  def as_json(options = {})
-    options ||= {}
-    options = Gab::JSON_OPTS.merge(options)
-    super options
-  end
-
-  def as_json_full
-    inc = { :messages => Message::JSON_OPTS, }
-    inc[:clues] = Clue::JSON_OPTS unless sent
-    as_json(:include => inc)
-  end
-
 end
 
 class Message < ActiveRecord::Base
-  JSON_OPTS = {
-    :only => [:id, :content, :sent, :created_at, :updated_at],
-  }
-
   belongs_to :user
   belongs_to :gab
 
   def self.dump_updated(user, time)
-    fields = [:id, :gab_id, :content, :sent, :deleted, :created_at]
+    fields = [:id, :gab_id, :content, :sent, :deleted, date_sql(:created_at)]
 
     sql = Message
       .select(fields)
@@ -247,12 +237,6 @@ class Message < ActiveRecord::Base
     end
 
     values
-  end
-
-  def as_json
-    options ||= {}
-    options = Message::JSON_OPTS.merge(options)
-    super options
   end
 
   def deliver

@@ -2,6 +2,7 @@ require 'resque'
 
 ENV['DATABASE_URL'] = ENV['HEROKU_POSTGRESQL_JADE_URL']  unless ENV['DATABASE_URL']
 ENV['DATABASE_URL'] = 'postgres://localhost/youtell-api' unless ENV['DATABASE_URL']
+
 ENV['REDISTOGO_URL'] = 'redis://localhost:6379/' unless ENV['REDISTOGO_URL']
 Resque.redis = Redis.connect(:url => ENV['REDISTOGO_URL'])
 

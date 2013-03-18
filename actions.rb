@@ -21,13 +21,7 @@ before do
 end
 
 get '/gabs' do
-  time = params[:time]
-  time = time.blank? ? Time.at(0) : Time.parse(time)
-
-  messages = Message.dump_updated(@user, time)
-  gabs = Gab.dump_updated(@user, time, messages)
-
-  ok :gabs => gabs, :messages => messages, :sync_time => time
+  ok :sync_data => sync_data
 end
 
 
@@ -59,11 +53,7 @@ post '/gabs' do
   json = gab.as_json_full
   gab.mark_read
 
-  time = Time.at(0)
-  messages = Message.dump_updated(@user, time)
-  gabs = Gab.dump_updated(@user, time, messages)
-
-  ok :gab_id => gab.id, :gabs => gabs, :messages => messages, :sync_time => time
+  ok :gab_id => gab.id, :sync_data => sync_data
 end
 
 get '/gabs/:id' do
@@ -88,6 +78,16 @@ post '/gabs/:id/clues' do
   err 400, 'no available clues' if clue.nil?
   ok clue
 end
+
+post '/gab-delete' do
+  gab = Gab
+    .where('user_id = ?', @user)
+    .includes(:messages)
+    .find(params[:id])
+  gab.mark_deleted
+  ok :sync_data => sync_data
+end
+
 
 post '/purchases' do
   receipt = params[:receipt]
