@@ -15,12 +15,13 @@ gem 'pony'
 gem 'twilio-ruby'
 gem 'grocer'
 gem 'newrelic_rpm'
+gem 'mini_magick'
 
 # for fake user generator
 gem 'bzip2-ruby'
 
 group :development do
   gem 'rerun'
-  gem 'rb-inotify', '~> 0.8.8'
+  gem 'rb-inotify', '~> 0.9.0'
   gem 'blitz'
 end

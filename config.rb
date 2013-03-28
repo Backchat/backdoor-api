@@ -20,8 +20,8 @@ SMTP_SETTINGS = {
   :enable_starttls_auto => true,
 }
 
-TWILIO_SID = 'AC5e6a2cc17a45d941252840c6ca7416ef'
-TWILIO_TOKEN = '1346022d42253959d79e47b6c171914f'
+TWILIO_SID = 'AC3a0890f50305fd4b1eccbc2251025ae8'
+TWILIO_TOKEN = '16efa8aa2178da2252a43ada84eea196'
 
 APN_CERT = File.dirname(__FILE__) + '/misc/certificate.pem'
 APN_PASS = ''
@@ -29,6 +29,9 @@ APN_PASS = ''
 BLITZ_TOKEN = '36a9c080ff6fdce0e32c66c3eb3edd9e'
 
 FEEDBACK_EMAIL = 'qx89l4+workspam@gmail.com'
+
+MESSAGE_KIND_TEXT = 0
+MESSAGE_KIND_PHOTO = 1
 
 configure :production do
   require 'newrelic_rpm'

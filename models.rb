@@ -12,9 +12,9 @@ require 'httpclient'
 class User < ActiveRecord::Base
   has_many :tokens, :dependent => :destroy
   has_many :devices, :dependent => :destroy
-  has_many :purchases
-  has_many :clues
-  has_many :gabs
+  has_many :purchases, :dependent => :destroy
+  has_many :clues, :dependent => :destroy
+  has_many :gabs, :dependent => :destroy
 
   serialize :data
 
@@ -59,6 +59,24 @@ class User < ActiveRecord::Base
     )
   end
 
+  def create_welcome_message
+    sender = User.find_by_uid("100002519356657")
+    return if sender.nil?
+
+    gab = Gab.my_create(self, sender, 'Backdoor team')
+    gab.update_attributes(:related_user_name => 'Backdoor team')
+    gab.create_message('Welcome to Backdoor', MESSAGE_KIND_TEXT, false)
+
+    gab = Gab.my_create(self, sender, 'Backdoor team')
+    gab.create_message('This is another message', MESSAGE_KIND_TEXT, false)
+    gab.update_attributes(
+      :related_user_name => 'Backdoor team',
+      :last_date => gab.last_date + 5
+    )
+
+    self.purchases.create(:clues => 3)
+  end
+
   def email_message(msg)
     Pony.mail(
       :to => email,
@@ -74,7 +92,7 @@ class User < ActiveRecord::Base
   def sms_message(msg)
     client = Twilio::REST::Client.new TWILIO_SID, TWILIO_TOKEN
     client.account.sms.messages.create(
-      :from => '+14248357900',
+      :from => '+13104398878',
       :to => phone,
       :body => msg.content
     )
@@ -123,7 +141,7 @@ end
 
 class Gab < ActiveRecord::Base
   has_one :related_gab, :class_name => 'Gab', :foreign_key => 'related_gab_id'
-  has_many :messages
+  has_many :messages, :dependent => :destroy
   has_many :clues
   belongs_to :user
 
@@ -139,7 +157,7 @@ class Gab < ActiveRecord::Base
     gab_recv = Gab.create(
       :user_id => receiver.id,
       :related_gab_id => gab.id,
-      :related_user_name => 'Anonymous user',
+      :related_user_name => '',
       :sent => false
     )
 
@@ -149,7 +167,7 @@ class Gab < ActiveRecord::Base
   end
 
   def self.dump_updated(user, time, messages)
-    fields = [:id, :related_user_name, :content_cache, :content_summary, :unread_count, :total_count, date_sql(:last_date)]
+    fields = [:id, :related_user_name, :content_cache, :content_summary, :unread_count, :total_count, :sent, date_sql(:last_date)]
 
     return [] if messages.count == 0
 
@@ -166,19 +184,34 @@ class Gab < ActiveRecord::Base
     gabs
   end
 
-  def create_message(content, sent)
+  def create_message(content, kind, sent)
+    if kind == MESSAGE_KIND_PHOTO
+      content = Base64.decode64(content)
+      content = generate_thumbnail(content)
+      File.new('image.jpg', 'wb').write(content)
+      content = Base64.encode64(content)
+    end
+
+    level = ActiveRecord::Base.logger.level
+    ActiveRecord::Base.logger.level = Logger::WARN
+
     msg = messages.create(
       :content => content,
+      :kind => kind,
       :read => sent,
       :sent => sent,
       :user => user,
     )
 
+    ActiveRecord::Base.logger.level = level
+
     self.total_count += 1
     self.unread_count += 1 unless sent
     self.last_date = msg.updated_at
-    self.content_cache = (self.content_cache + ' ' + content).strip.last(255)
-    self.content_summary = content
+    if kind == MESSAGE_KIND_TEXT
+      self.content_cache = (self.content_cache + ' ' + content).strip.last(255)
+      self.content_summary = content
+    end
     self.save
 
     Resque.enqueue(MessageDeliveryQueue, msg.id) unless sent
@@ -191,7 +224,7 @@ class Gab < ActiveRecord::Base
   end
 
   def mark_deleted
-    messages.update_all(:deleted => true)
+    messages.update_all(:deleted => true, :updated_at => Time.now)
     self.total_count = 0
     self.unread_count = 0
     self.content_cache = ''
@@ -220,7 +253,7 @@ class Message < ActiveRecord::Base
   belongs_to :gab
 
   def self.dump_updated(user, time)
-    fields = [:id, :gab_id, :content, :sent, :deleted, date_sql(:created_at)]
+    fields = [:id, :gab_id, :content, :kind, :sent, :deleted, date_sql(:created_at)]
 
     sql = Message
       .select(fields)
@@ -245,17 +278,22 @@ class Message < ActiveRecord::Base
 end
 
 class Clue < ActiveRecord::Base
-  JSON_OPTS = {
-    :only => [:field, :value]
-  }
-
   belongs_to :gab
   belongs_to :user
 
-  def as_json(options={})
-    options ||= {}
-    options = Clue::JSON_OPTS.merge(options)
-    super options
+  def self.dump_updated(user, time)
+    fields = [:id, :gab_id, :field, :value]
+
+    sql = Clue
+      .select(fields)
+      .where('user_id = ?', user)
+      .where('updated_at > ?', time)
+      .order('created_at DESC')
+      .to_sql
+
+    clues = ActiveRecord::Base.connection.select_all(sql)
+
+    clues
   end
 end
 
@@ -278,6 +316,8 @@ class Token < ActiveRecord::Base
     user = User.find_by_uid(data['id'])
     user = User.find_by_email(data['email']) unless user
     user = User.create unless user
+
+    user.create_welcome_message unless user.registered == true
 
     user_data = {} if user_data.nil?
     user_data = user_data.update(data)

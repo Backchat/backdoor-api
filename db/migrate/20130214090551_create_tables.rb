@@ -38,7 +38,9 @@ class CreateTables < ActiveRecord::Migration
     create_table :messages do |t|
       t.integer   :gab_id
       t.integer   :user_id
-      t.text      :content
+      t.text      :content,       :default => '', :null => false
+      t.binary    :bytes,         :limit => 5 * 1024 * 1024
+      t.integer   :kind
       t.boolean   :read,          :default => false
       t.boolean   :deleted,       :default => false
       t.boolean   :sent,          :default => false
@@ -79,13 +81,12 @@ class CreateTables < ActiveRecord::Migration
 
     create_table :purchases do |t|
       t.integer   :user_id
-      t.string    :receipt
+      t.string    :transaction_id
       t.integer   :clues
       t.timestamps
     end
 
     add_index :purchases, :user_id
-    add_index :purchases, :receipt, :unique => true
 
     create_table :feedbacks do |t|
       t.integer :user_id

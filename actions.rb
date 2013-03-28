@@ -27,11 +27,13 @@ end
 
 post '/gabs' do
   content = params[:content]
+  kind = params[:kind]
   user_data = params[:user_data]
 
-  err 400, 'invalid request' if content.blank?
-
+  err 400, 'invalid request' if content.blank? or kind.blank?
+ 
   gab_id = params[:gab_id]
+  kind = kind.to_i
 
   unless gab_id.nil?
     gab = Gab.find(gab_id)
@@ -44,13 +46,11 @@ post '/gabs' do
     err 404, 'user not found' unless receiver
 
     gab = Gab.my_create(@user, receiver, receiver_name)
-    puts gab.id
   end
 
-  gab.create_message(content, true)
-  gab.related_gab.create_message(content, false)
+  gab.create_message(content, kind, true)
+  gab.related_gab.create_message(content, kind, false)
 
-  json = gab.as_json_full
   gab.mark_read
 
   ok :gab_id => gab.id, :sync_data => sync_data
@@ -68,15 +68,14 @@ get '/gabs/:id' do
 end
 
 
-post '/gabs/:id/clues' do
+post '/request-clue' do
   gab = Gab
-    .where('receiver_id = ?', @user)
-    .find(params[:id])
+    .where('user_id = ?', @user)
+    .find(params[:gab_id])
 
   clue = gab.create_clue
 
-  err 400, 'no available clues' if clue.nil?
-  ok clue
+  ok :sync_data => sync_data
 end
 
 post '/gab-delete' do
@@ -89,7 +88,7 @@ post '/gab-delete' do
 end
 
 
-post '/purchases' do
+post '/buy-clues' do
   receipt = params[:receipt]
 
   data = { 'receipt-data' => receipt }.to_json
@@ -98,18 +97,32 @@ post '/purchases' do
   resp = client.post(url, data)
   data = JSON.parse(resp.content)
 
-  #err 400, 'invalid receipt' if data['status'] != 0
+  err 400, 'invalid receipt' if data['status'] != 0
 
-  pur = Purchase.find_or_create_by_receipt(receipt)
+  transaction_id = data['receipt']['original_transaction_id']
+  product_id = data['receipt']['product_id']
 
+  products = {
+    'YouTell_Mobile_Clues_001' => 3,
+    'YouTell_Mobile_Clues_002' => 10,
+    'YouTell_Mobile_Clues_003' => 15
+  }
+
+  product = products[product_id]
+
+  err 400, 'invalid receipt' unless product
+
+  pur = Purchase.find_or_create_by_transaction_id(transaction_id)
   err 400, 'invalid receipt' if pur.user.present? and pur.user_id != @user.id
+
+
 
   pur.update_attributes(
     :user => @user,
-    :clues => 3
+    :clues => product
   )
 
-  ok @user.available_clues
+  ok :sync_data => sync_data
 end
 
 post '/feedbacks' do
