@@ -16,6 +16,7 @@ gem 'twilio-ruby'
 gem 'grocer'
 gem 'newrelic_rpm'
 gem 'mini_magick'
+gem 'phony'
 
 # for fake user generator
 gem 'bzip2-ruby'

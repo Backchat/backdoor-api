@@ -33,6 +33,8 @@ FEEDBACK_EMAIL = 'qx89l4+workspam@gmail.com'
 MESSAGE_KIND_TEXT = 0
 MESSAGE_KIND_PHOTO = 1
 
+FACTORY_USER_UID = "100004777423660"
+
 configure :production do
   require 'newrelic_rpm'
 end

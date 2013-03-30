@@ -41,7 +41,8 @@ helpers do
       :clues => clues,
       :sync_time => sync_time,
       :sync_uid => sync_uid,
-      :available_clues => avail_clues
+      :available_clues => avail_clues,
+      :new_user => @new_user
     }
   end
 end

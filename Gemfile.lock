@@ -51,6 +51,7 @@ GEM
     multi_json (1.7.2)
     newrelic_rpm (3.6.0.78)
     pg (0.14.1)
+    phony (1.9.0)
     polyglot (0.3.3)
     pony (1.4)
       mail (> 2.0)
@@ -119,6 +120,7 @@ DEPENDENCIES
   httpclient
   mini_magick
   newrelic_rpm
+  phony
   pony
   postgres
   rake

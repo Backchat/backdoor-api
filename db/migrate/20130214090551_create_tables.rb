@@ -5,9 +5,9 @@ class CreateTables < ActiveRecord::Migration
       t.boolean   :registered,    :default => false
       t.boolean   :fake,          :default => false
 
-      t.string    :phone
-      t.string    :email
-      t.string    :uid
+      t.string    :phone,         :default => ''
+      t.string    :email,         :default => ''
+      t.string    :uid,           :default => ''
       t.text      :data
 
       t.timestamps
@@ -21,7 +21,8 @@ class CreateTables < ActiveRecord::Migration
       t.integer   :user_id
 
       t.integer   :related_gab_id
-      t.string    :related_user_name
+      t.string    :related_user_name, :default => ''
+      t.string    :related_phone,     :default => ''
 
       t.string    :content_cache,   :default => ''
       t.string    :content_summary, :default => ''
@@ -39,8 +40,8 @@ class CreateTables < ActiveRecord::Migration
       t.integer   :gab_id
       t.integer   :user_id
       t.text      :content,       :default => '', :null => false
-      t.binary    :bytes,         :limit => 5 * 1024 * 1024
       t.integer   :kind
+      t.string    :secret,        :default => ''
       t.boolean   :read,          :default => false
       t.boolean   :deleted,       :default => false
       t.boolean   :sent,          :default => false
@@ -53,8 +54,8 @@ class CreateTables < ActiveRecord::Migration
     create_table :clues do |t|
       t.integer   :user_id
       t.integer   :gab_id
-      t.string    :field
-      t.string    :value
+      t.string    :field,         :default => ''
+      t.string    :value,         :default => ''
       t.timestamps
     end
 
@@ -63,7 +64,7 @@ class CreateTables < ActiveRecord::Migration
 
     create_table :tokens do |t|
       t.integer   :user_id
-      t.string    :access_token
+      t.string    :access_token,  :default => ''
       t.timestamps
     end
 
@@ -72,7 +73,7 @@ class CreateTables < ActiveRecord::Migration
 
     create_table :devices do |t|
       t.integer   :user_id
-      t.string    :device_token
+      t.string    :device_token,  :default => ''
       t.timestamps
     end
 
@@ -81,7 +82,7 @@ class CreateTables < ActiveRecord::Migration
 
     create_table :purchases do |t|
       t.integer   :user_id
-      t.string    :transaction_id
+      t.string    :transaction_id,  :default => ''
       t.integer   :clues
       t.timestamps
     end
@@ -94,5 +95,12 @@ class CreateTables < ActiveRecord::Migration
       t.integer :rating
       t.timestamps
     end
+
+    create_table :images do |t|
+      t.string  :secret
+      t.binary  :data
+    end
+
+    add_index :images, :secret
   end
 end

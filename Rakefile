@@ -10,6 +10,7 @@ namespace :resque do
     require 'resque_scheduler'
     require 'resque/scheduler'
 
+    Resque.before_fork = Proc.new { ActiveRecord::Base.establish_connection }
     Resque.schedule = {"DeviceCleanupQueue"=>{"cron"=>"0 * * * *"}}
   end
 
@@ -17,5 +18,15 @@ namespace :resque do
     Resque.redis.del 'queue:message_delivery'
     Resque.redis.del 'queue:feedback_delivery'
     Resque.redis.del 'queue:device_cleanup'
+  end
+end
+
+namespace :db do
+  task :create_factory_user do
+    user = User.create({
+      :uid => FACTORY_USER_UID,
+      :registered => true,
+      :data => {}
+    })
   end
 end

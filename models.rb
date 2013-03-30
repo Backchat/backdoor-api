@@ -7,6 +7,7 @@ require 'httpclient'
 require 'twilio-ruby'
 require 'grocer'
 require 'httpclient'
+require 'phony'
 
 
 class User < ActiveRecord::Base
@@ -60,14 +61,14 @@ class User < ActiveRecord::Base
   end
 
   def create_welcome_message
-    sender = User.find_by_uid("100002519356657")
+    sender = User.find_by_uid(FACTORY_USER_UID)
     return if sender.nil?
 
-    gab = Gab.my_create(self, sender, 'Backdoor team')
+    gab = Gab.my_create(self, sender, 'Backdoor team', '')
     gab.update_attributes(:related_user_name => 'Backdoor team')
     gab.create_message('Welcome to Backdoor', MESSAGE_KIND_TEXT, false)
 
-    gab = Gab.my_create(self, sender, 'Backdoor team')
+    gab = Gab.my_create(self, sender, 'Backdoor team', '')
     gab.create_message('This is another message', MESSAGE_KIND_TEXT, false)
     gab.update_attributes(
       :related_user_name => 'Backdoor team',
@@ -89,13 +90,25 @@ class User < ActiveRecord::Base
     )
   end
 
-  def sms_message(msg)
+  def sms_message(msg, phone_number)
+    if msg.kind != MESSAGE_KIND_TEXT
+      related_gab = msg.gab.related_gab
+      related_gab.create_message("ERROR_SMS_PHOTO_DELIVERY", MESSAGE_KIND_TEXT, false)
+      return
+    end
+
     client = Twilio::REST::Client.new TWILIO_SID, TWILIO_TOKEN
-    client.account.sms.messages.create(
-      :from => '+13104398878',
-      :to => phone,
-      :body => msg.content
-    )
+    begin
+      client.account.sms.messages.create(
+        :from => '+13104398878',
+        :to => Phony.formatted(phone_number, :format => :international, :spaces => ''),
+        :body => msg.content
+      )
+    rescue
+      ActiveRecord::Base.logger.error $!.class.to_s + ': ' + $!.message
+      ActiveRecord::Base.logger.error $!.backtrace.join("\n")
+      msg.gab.related_gab.create_message("ERROR_SMS_DELIVERY", MESSAGE_KIND_TEXT, false)
+    end
   end
 
   def push_message(msg)
@@ -105,7 +118,6 @@ class User < ActiveRecord::Base
     )
 
     devices.each do |device|
-      puts "pushing to: ", device.device_token
       notification = Grocer::Notification.new(
         device_token: device.device_token,
         alert:        "New message from YouTell",
@@ -119,19 +131,19 @@ class User < ActiveRecord::Base
   def deliver_message(msg)
     return if fake
 
-    if devices.count > 0
+    if registered
       push_message(msg)
-    elsif !email.blank?
-      email_message(msg)
-    elsif !uid.blank?
-      fetch_facebook_data
-      email_message(msg)
-    elsif !phone.blank?
-      sms_message(msg)
-    else
-      # NOTREACHED
-      raise 'Cannot deliver message: %s' % msg.id
+      return unless uid == FACTORY_USER_UID
     end
+    return email_message(msg) unless email.blank?
+    return sms_message(msg, phone) unless phone.blank?
+    return sms_message(msg, msg.gab.related_phone) unless msg.gab.related_phone.blank?
+
+    # NOTREACHED
+
+    #elsif !uid.blank?
+    #  fetch_facebook_data
+    #  email_message(msg)
   end
 
   before_save do |obj|
@@ -147,10 +159,10 @@ class Gab < ActiveRecord::Base
 
   cattr_accessor :current_user
 
-  def self.my_create(user, receiver, receiver_name)
+  def self.my_create(user, receiver, related_user_name, related_phone)
     gab = Gab.create(
       :user_id => user.id,
-      :related_user_name => receiver_name,
+      :related_user_name => related_user_name,
       :sent => true
     )
 
@@ -158,6 +170,7 @@ class Gab < ActiveRecord::Base
       :user_id => receiver.id,
       :related_gab_id => gab.id,
       :related_user_name => '',
+      :related_phone => related_phone,
       :sent => false
     )
 
@@ -185,19 +198,29 @@ class Gab < ActiveRecord::Base
   end
 
   def create_message(content, kind, sent)
-    if kind == MESSAGE_KIND_PHOTO
-      content = Base64.decode64(content)
-      content = generate_thumbnail(content)
+    if kind == MESSAGE_KIND_TEXT
+      secret = ''
+    elsif kind == MESSAGE_KIND_PHOTO
+      secret = SecureRandom.hex(8)
+      data = Base64.decode64(content)
+      content = generate_thumbnail(data)
       File.new('image.jpg', 'wb').write(content)
       content = Base64.encode64(content)
+    else
+      # NOTREACHED
     end
 
     level = ActiveRecord::Base.logger.level
     ActiveRecord::Base.logger.level = Logger::WARN
 
+    if kind == MESSAGE_KIND_PHOTO
+      image = Image.create(:data => data, :secret => secret)
+    end
+
     msg = messages.create(
       :content => content,
       :kind => kind,
+      :secret => secret,
       :read => sent,
       :sent => sent,
       :user => user,
@@ -208,10 +231,13 @@ class Gab < ActiveRecord::Base
     self.total_count += 1
     self.unread_count += 1 unless sent
     self.last_date = msg.updated_at
-    if kind == MESSAGE_KIND_TEXT
-      self.content_cache = (self.content_cache + ' ' + content).strip.last(255)
-      self.content_summary = content
+
+    summary = msg.summary
+    unless summary.nil? or summary.empty?
+      self.content_cache = (self.content_cache + ' ' + summary).strip.last(255)
+      self.content_summary = summary
     end
+
     self.save
 
     Resque.enqueue(MessageDeliveryQueue, msg.id) unless sent
@@ -253,7 +279,7 @@ class Message < ActiveRecord::Base
   belongs_to :gab
 
   def self.dump_updated(user, time)
-    fields = [:id, :gab_id, :content, :kind, :sent, :deleted, date_sql(:created_at)]
+    fields = [:id, :gab_id, :content, :kind, :sent, :deleted, :secret, date_sql(:created_at)]
 
     sql = Message
       .select(fields)
@@ -270,6 +296,13 @@ class Message < ActiveRecord::Base
     end
 
     values
+  end
+
+  def summary
+    return '' unless kind == MESSAGE_KIND_TEXT
+    return '' if content == 'ERROR_SMS_DELIVERY'
+    return '' if content == 'ERROR_SMS_PHOTO_DELIVERY'
+    return content
   end
 
   def deliver
@@ -303,7 +336,7 @@ class Token < ActiveRecord::Base
   def self.authenticate(access_token, user_data)
 
     token = Token.find_by_access_token(access_token)
-    return token unless token.nil?
+    return [token, false] unless token.nil?
 
     client = HTTPClient.new
     url = 'https://graph.facebook.com/me'
@@ -319,9 +352,9 @@ class Token < ActiveRecord::Base
 
     user.create_welcome_message unless user.registered == true
 
-    user_data = {} if user_data.nil?
-    user_data = user_data.update(data)
-    user_data = user.data.update(user_data)
+    user_data = user.data.blank? ? data : user.data.update(data)
+
+    new_user = !user.registered
 
     user.update_attributes(
       :email => data['email'],
@@ -332,7 +365,7 @@ class Token < ActiveRecord::Base
 
     token = user.tokens.create(:access_token => access_token)
 
-    token
+    [token, new_user]
   end
 end
 
@@ -361,6 +394,17 @@ class Feedback < ActiveRecord::Base
     Resque.enqueue(FeedbackDeliveryQueue, fb.id)
   end
 end
+
+class Image < ActiveRecord::Base
+  def content_type
+    'image/jpeg'
+  end
+
+  def file_name
+    "#{secret}.jpg"
+  end
+end
+
 
 class MessageDeliveryQueue
   @queue = :message_delivery

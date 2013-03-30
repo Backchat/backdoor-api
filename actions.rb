@@ -5,19 +5,21 @@ before do
   user_data = params[:user_data]
   blitz_token = params[:blitz_token]
 
-  return if request.path == '/admin'
+  return if request.path == '/admin' or request.path == '/images'
 
   err 400, 'invalid request' if access_token.nil?
 
   @blitz_mode = (blitz_token == BLITZ_TOKEN)
 
-  token = Token.authenticate(access_token, user_data)
+  auth = Token.authenticate(access_token, user_data)
+  token = auth[0]
   device = Device.my_find_or_create(device_token, token.user)
 
   @user = token.user
   Gab.current_user = token.user
 
   @user.update_attributes(:data => @user.data.update(user_data)) unless user_data.blank?
+  @new_user = auth[1]
 end
 
 get '/gabs' do
@@ -41,11 +43,12 @@ post '/gabs' do
     receiver_uid = params[:receiver_uid]
     receiver_email = params[:receiver_email]
     receiver_phone = params[:receiver_phone]
-    receiver_name = params[:receiver_name]
+    related_user_name = params[:related_user_name]
+    related_phone = params[:related_phone]
     receiver = User.my_find_or_create(receiver_uid, receiver_email, receiver_phone, @blitz_mode)
     err 404, 'user not found' unless receiver
 
-    gab = Gab.my_create(@user, receiver, receiver_name)
+    gab = Gab.my_create(@user, receiver, related_user_name, related_phone)
   end
 
   gab.create_message(content, kind, true)
@@ -55,18 +58,6 @@ post '/gabs' do
 
   ok :gab_id => gab.id, :sync_data => sync_data
 end
-
-get '/gabs/:id' do
-  gab = Gab
-    .where('user_id = ?', @user)
-    .includes(:messages)
-    .find(params[:id])
-
-  json = gab.as_json_full
-  gab.mark_read
-  ok json
-end
-
 
 post '/request-clue' do
   gab = Gab
@@ -78,7 +69,14 @@ post '/request-clue' do
   ok :sync_data => sync_data
 end
 
-post '/gab-delete' do
+get '/check-uid' do
+  uid = params[:uid]
+  user = User.find_by_uid(uid)
+  exists = (!user.nil?) && user.registered && user.uid != FACTORY_USER_UID
+  ok :uid_exists => (exists ? 'yes' : 'no')
+end
+
+post '/clear-gab' do
   gab = Gab
     .where('user_id = ?', @user)
     .includes(:messages)
@@ -138,6 +136,19 @@ post '/feedbacks' do
   )
 
   ok {}
+end
+
+get '/images' do
+  secret = params[:secret]
+
+  err 400, 'invalid request' if secret.blank?
+
+  image = Image.find_by_secret(secret)
+
+  err 404, 'File not found' if image.nil?
+
+  content_type image.content_type
+  image.data
 end
 
 get '/ping' do
