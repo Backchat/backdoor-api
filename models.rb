@@ -135,7 +135,7 @@ class User < ActiveRecord::Base
       ActiveRecord::Base.logger.info 'Delivering apn to %s' % device.device_token
       notification = Grocer::Notification.new(
         device_token: device.device_token,
-        alert:        "New message from YouTell",
+        alert:        "Someone sent you a Backdoor message.",
         badge:        msg.user.unread_messages,
         sound:        'default',
         custom:       { :gab_id => msg.gab.id }
