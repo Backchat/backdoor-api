@@ -16,6 +16,7 @@ class User < ActiveRecord::Base
   has_many :purchases, :dependent => :destroy
   has_many :clues, :dependent => :destroy
   has_many :gabs, :dependent => :destroy
+  has_many :messages, :dependent => :destroy
 
   serialize :data
 
@@ -27,10 +28,10 @@ class User < ActiveRecord::Base
     return if user.nil?
 
     user.autocreated = true unless user.registered
-    user.uid = uid if user.uid.blank?
-    user.email = email if user.email.blank?
-    user.phone = phone if user.phone.blank?
-    user.data = { 'email' => email, 'id' => uid } if user.data == {}
+    user.uid = uid if user.uid.blank? && !uid.blank?
+    user.email = email if user.email.blank? && !email.blank?
+    user.phone = phone if user.phone.blank? && !phone.blank?
+    user.data = { 'email' => (email || ''), 'id' => (uid || '') } if user.data == {}
     user.fake = fake
     user.save
 
@@ -41,6 +42,10 @@ class User < ActiveRecord::Base
     total = purchases.sum(:clues)
     used = clues.count
     total - used
+  end
+
+  def unread_messages
+    messages.where(:read => false, :deleted => false).count
   end
 
   def fetch_facebook_data
@@ -79,6 +84,7 @@ class User < ActiveRecord::Base
   end
 
   def email_message(msg)
+    ActiveRecord::Base.logger.info 'Delivering email to %s' % email
     Pony.mail(
       :to => email,
       :via => :smtp,
@@ -99,9 +105,11 @@ class User < ActiveRecord::Base
 
     client = Twilio::REST::Client.new TWILIO_SID, TWILIO_TOKEN
     begin
+      to = Phony.formatted(phone_number, :format => :international, :spaces => '')
+      ActiveRecord::Base.logger.info 'Delivering sms to %s' % to
       client.account.sms.messages.create(
         :from => '+13104398878',
-        :to => Phony.formatted(phone_number, :format => :international, :spaces => ''),
+        :to => to,
         :body => msg.content
       )
     rescue
@@ -114,17 +122,27 @@ class User < ActiveRecord::Base
   def push_message(msg)
     pusher = Grocer.pusher(
       certificate:  APN_CERT,
-      passphrase:   APN_PASS
+      passphrase:   '',
+      gateway:      APN_GATEWAY
+    )
+    pusher2 = Grocer.pusher(
+      certificate:  APN_CERT_PROD,
+      passphrase:   '',
+      gateway:      APN_GATEWAY_PROD
     )
 
     devices.each do |device|
+      ActiveRecord::Base.logger.info 'Delivering apn to %s' % device.device_token
       notification = Grocer::Notification.new(
         device_token: device.device_token,
         alert:        "New message from YouTell",
+        badge:        msg.user.unread_messages,
         sound:        'default',
         custom:       { :gab_id => msg.gab.id }
       )
+  
       pusher.push(notification)
+      pusher2.push(notification)
     end
   end
 
@@ -135,9 +153,21 @@ class User < ActiveRecord::Base
       push_message(msg)
       return unless uid == FACTORY_USER_UID
     end
-    return email_message(msg) unless email.blank?
-    return sms_message(msg, phone) unless phone.blank?
-    return sms_message(msg, msg.gab.related_phone) unless msg.gab.related_phone.blank?
+
+    unless email.blank?
+      email_message(msg)
+      return unless uid == FACTORY_USER_UID
+    end
+
+    unless phone.blank?
+      sms_message(msg, phone)
+      return unless uid == FACTORY_USER_UID
+    end
+
+    unless msg.gab.related_phone.blank?
+      sms_message(msg, msg.gab.related_phone)
+      return unless uid == FACTORY_USER_UID
+    end
 
     # NOTREACHED
 
@@ -162,16 +192,18 @@ class Gab < ActiveRecord::Base
   def self.my_create(user, receiver, related_user_name, related_phone)
     gab = Gab.create(
       :user_id => user.id,
-      :related_user_name => related_user_name,
-      :sent => true
+      :related_user_name => related_user_name || '',
+      :sent => true,
+      :last_date => Time.now
     )
 
     gab_recv = Gab.create(
       :user_id => receiver.id,
       :related_gab_id => gab.id,
       :related_user_name => '',
-      :related_phone => related_phone,
-      :sent => false
+      :related_phone => related_phone || '',
+      :sent => false,
+      :last_date => Time.now
     )
 
     gab.update_attributes(:related_gab_id => gab_recv.id)
@@ -244,7 +276,7 @@ class Gab < ActiveRecord::Base
   end
 
   def mark_read
-    messages.update_all(:read => true)
+    messages.update_all(:read => true, :updated_at => Time.now)
     self.unread_count = 0
     self.save
   end
@@ -265,7 +297,7 @@ class Gab < ActiveRecord::Base
     return unless current_user.available_clues > 0
 
     field = ['gender', 'birthday', 'first_name'][count]
-    value = user.data[field]
+    value = related_gab.user.data[field]
     clues.create(
       :user => current_user,
       :field => field,

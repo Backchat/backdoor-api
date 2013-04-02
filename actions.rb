@@ -23,6 +23,12 @@ before do
 end
 
 get '/gabs' do
+  gab_id = params[:gab_id]
+  unless gab_id.nil?
+    gab = @user.gabs.find_by_id(gab_id)
+    gab.mark_read unless gab.nil?
+  end
+
   ok :sync_data => sync_data
 end
 

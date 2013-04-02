@@ -23,8 +23,10 @@ SMTP_SETTINGS = {
 TWILIO_SID = 'AC3a0890f50305fd4b1eccbc2251025ae8'
 TWILIO_TOKEN = '16efa8aa2178da2252a43ada84eea196'
 
-APN_CERT = File.dirname(__FILE__) + '/misc/certificate.pem'
-APN_PASS = ''
+APN_CERT = File.dirname(__FILE__) + '/misc/cl_dev.pem'
+APN_GATEWAY = 'gateway.sandbox.push.apple.com'
+APN_CERT_PROD = File.dirname(__FILE__) + '/misc/cl_prod.pem'
+APN_GATEWAY_PROD = 'gateway.push.apple.com'
 
 BLITZ_TOKEN = '36a9c080ff6fdce0e32c66c3eb3edd9e'
 

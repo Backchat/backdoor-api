@@ -71,8 +71,8 @@ $('.request-submit').click(function(ev){
 $('.request-method').change(function(){
     var params = {
         "GET;gabs": { 'time': '' },
-        "POST;gabs": { 'content': 'initial message', 'user_data': { 'foo': 'bar' }, 'receiver_email': 'qx89l4+facebook@gmail.com', 'receiver_name': 'My receiver' },
-        "POST;gabs_message": { 'content': 'reply message', 'user_data': { 'foo': 'bar' }, 'gab_id': 5 },
+        "POST;gabs": { 'content': 'initial message', 'kind': 0,  'user_data': { 'foo': 'bar' }, 'receiver_email': 'qx89l4+facebook@gmail.com', 'related_user_name': 'My receiver' },
+        "POST;gabs_message": { 'content': 'reply message', 'kind': 0, 'user_data': { 'foo': 'bar' }, 'gab_id': 5 },
         "POST;gab-request-clue": { 'gab_id': 5 },
         "POST;purchases": { 'receipt': '<insert receipt here>' }
     };
