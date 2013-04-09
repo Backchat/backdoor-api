@@ -131,11 +131,14 @@ class User < ActiveRecord::Base
       gateway:      APN_GATEWAY_PROD
     )
 
+    sender = msg.gab.related_user_name
+    sender = 'Someone' if sender.blank?
+
     devices.each do |device|
       ActiveRecord::Base.logger.info 'Delivering apn to %s' % device.device_token
       notification = Grocer::Notification.new(
         device_token: device.device_token,
-        alert:        "Someone sent you a Backdoor message.",
+        alert:        "%s sent you a Backdoor message." % sender,
         badge:        msg.user.unread_messages,
         sound:        'default',
         custom:       { :gab_id => msg.gab.id }
@@ -236,7 +239,7 @@ class Gab < ActiveRecord::Base
       secret = SecureRandom.hex(8)
       data = Base64.decode64(content)
       content = generate_thumbnail(data)
-      File.new('image.jpg', 'wb').write(content)
+      #File.new('image.jpg', 'wb').write(content)
       content = Base64.encode64(content)
     else
       # NOTREACHED
@@ -291,13 +294,40 @@ class Gab < ActiveRecord::Base
   end
 
   def create_clue
-    count = clues.count
+    used = clues.map { |x| x.field }
+    count = used.count
 
-    return if count > 2
+    return if count > 3
     return unless current_user.available_clues > 0
 
-    field = ['gender', 'birthday', 'first_name'][count]
-    value = related_gab.user.data[field]
+    data = related_gab.user.data
+
+    gender = data['gender']
+    location = data['location']
+    family = data['family']
+    work = data['work']
+    edu = data['education']
+
+    if !used.include?('gender') && !gender.nil?
+      field = 'gender'
+      value = gender
+    elsif !used.include?('location') && !location.nil? && !location['name'].nil?
+      field = 'location'
+      value = location['name']
+    elsif !used.include?('family') && !family.nil? && family.kind_of?(Array) && family.count > 0
+      field = 'family'
+      members = family.map { |x| x['id'] }
+      value = members.include?(current_user.uid)
+    elsif !used.include?('work') && !work.nil? && work.kind_of?(Array) && work.count > 0 && !work[0]['employer'].nil? && !work[0]['employer']['name'].nil?
+      field = 'work'
+      value = work[0]['employer']['name']
+    elsif !used.include?('edu') && !edu.nil? && edu.kind_of?(Array) && edu.count > 0 && !edu[0]['school'].nil? && !edu[0]['school']['name'].nil?
+      field = 'edu'
+      value = edu[0]['school']['name']
+    else
+      return
+    end
+
     clues.create(
       :user => current_user,
       :field => field,

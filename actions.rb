@@ -78,7 +78,7 @@ end
 get '/check-uid' do
   uid = params[:uid]
   user = User.find_by_uid(uid)
-  exists = (!user.nil?) && user.registered && user.uid != FACTORY_USER_UID
+  exists = (!user.nil?) && user.registered #&& user.uid != FACTORY_USER_UID
   ok :uid_exists => (exists ? 'yes' : 'no')
 end
 
