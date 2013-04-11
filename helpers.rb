@@ -17,9 +17,10 @@ helpers do
   def sync_data
     old_time = params[:sync_time]
     old_uid = params[:sync_uid]
+    provider = params[:provider]
 
     sync_time = Time.now.to_formatted_s :db
-    sync_uid = @user.data['id']
+    sync_uid = @user.id.to_s
 
     avail_clues = @user.available_clues.to_s
 

@@ -2,7 +2,9 @@
 before do
   access_token = params[:access_token]
   device_token = params[:device_token]
-  user_data = params[:user_data]
+  provider = params[:provider]
+  fb_data = params[:fb_data]
+  gpp_data = params[:gpp_data]
   blitz_token = params[:blitz_token]
 
   return if request.path == '/admin' or request.path == '/images'
@@ -11,14 +13,17 @@ before do
 
   @blitz_mode = (blitz_token == BLITZ_TOKEN)
 
-  auth = Token.authenticate(access_token, user_data)
+  auth = Token.authenticate(access_token, provider, fb_data, gpp_data)
   token = auth[0]
   device = Device.my_find_or_create(device_token, token.user)
 
   @user = token.user
   Gab.current_user = token.user
 
-  @user.update_attributes(:data => @user.data.update(user_data)) unless user_data.blank?
+  @user.fb_data = @user.fb_data.update(fb_data) unless fb_data.blank?
+  @user.gpp_data = @user.gpp_data.update(gpp_data) unless gpp_data.blank?
+  @user.save unless fb_data.blank? && gpp_data.blank?
+
   @new_user = auth[1]
 end
 
@@ -36,7 +41,6 @@ end
 post '/gabs' do
   content = params[:content]
   kind = params[:kind]
-  user_data = params[:user_data]
 
   err 400, 'invalid request' if content.blank? or kind.blank?
  
@@ -46,12 +50,13 @@ post '/gabs' do
   unless gab_id.nil?
     gab = Gab.find(gab_id)
   else
-    receiver_uid = params[:receiver_uid]
+    receiver_fb_id = params[:receiver_fb_id]
+    receiver_gpp_id = params[:receiver_gpp_id]
     receiver_email = params[:receiver_email]
     receiver_phone = params[:receiver_phone]
     related_user_name = params[:related_user_name]
     related_phone = params[:related_phone]
-    receiver = User.my_find_or_create(receiver_uid, receiver_email, receiver_phone, @blitz_mode)
+    receiver = User.my_find_or_create(receiver_fb_id, receiver_gpp_id, receiver_email, receiver_phone, @blitz_mode)
     err 404, 'user not found' unless receiver
 
     gab = Gab.my_create(@user, receiver, related_user_name, related_phone)
@@ -77,7 +82,8 @@ end
 
 get '/check-uid' do
   uid = params[:uid]
-  user = User.find_by_uid(uid)
+  user = User.find_by_fb_id(uid)
+  user = User.find_by_gpp_id(uid) if user.nil?
   exists = (!user.nil?) && user.registered #&& user.uid != FACTORY_USER_UID
   ok :uid_exists => (exists ? 'yes' : 'no')
 end

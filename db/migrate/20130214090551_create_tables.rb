@@ -7,15 +7,18 @@ class CreateTables < ActiveRecord::Migration
 
       t.string    :phone,             :null => false, :default => ''
       t.string    :email,             :null => false, :default => ''
-      t.string    :uid,               :null => false, :default => ''
-      t.text      :data,              :null => false, :default => ''
+      t.string    :gpp_id,            :null => false, :default => ''
+      t.string    :fb_id,             :null => false, :default => ''
+      t.text      :gpp_data,          :null => false, :default => ''
+      t.text      :fb_data,           :null => false, :default => ''
 
       t.timestamps
     end
 
     add_index :users, :phone
     add_index :users, :email
-    add_index :users, :uid
+    add_index :users, :gpp_id
+    add_index :users, :fb_id
 
     create_table :gabs do |t|
       t.integer   :user_id,           :null => false, :default => 0

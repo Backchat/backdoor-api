@@ -18,20 +18,24 @@ class User < ActiveRecord::Base
   has_many :gabs, :dependent => :destroy
   has_many :messages, :dependent => :destroy
 
-  serialize :data
+  serialize :fb_data
+  serialize :gpp_data
 
-  def self.my_find_or_create(uid, email, phone, fake = false)
-    user = User.find_or_create_by_uid(uid) unless uid.blank?
+  def self.my_find_or_create(fb_id, gpp_id, email, phone, fake = false)
+    user = User.find_or_create_by_fb_id(fb_id) unless fb_id.blank?
+    user = User.find_or_create_by_gpp_id(gpp_id) unless gpp_id.blank?
     user = User.find_or_create_by_email(email) unless user || email.blank?
     user = User.find_or_create_by_phone(phone) unless user || phone.blank?
 
     return if user.nil?
 
     user.autocreated = true unless user.registered
-    user.uid = uid if user.uid.blank? && !uid.blank?
+    user.fb_id = fb_id if user.fb_id.blank? && !fb_id.blank?
+    user.gpp_id = gpp_id if user.gpp_id.blank? && !gpp_id.blank?
     user.email = email if user.email.blank? && !email.blank?
     user.phone = phone if user.phone.blank? && !phone.blank?
-    user.data = { 'email' => (email || ''), 'id' => (uid || '') } if user.data == {}
+    user.fb_data = { 'email' => (email || ''), 'id' => (fb_id || '') } if user.fb_data == {}
+    user.gpp_data = { 'email' => (email || ''), 'id' => (gpp_id || '') } if user.gpp_data == {}
     user.fake = fake
     user.save
 
@@ -48,25 +52,25 @@ class User < ActiveRecord::Base
     messages.where(:read => false, :deleted => false).count
   end
 
-  def fetch_facebook_data
-    client = HTTPClient.new
-    url = 'https://graph.facebook.com/%d' % uid
-    resp = client.get(url)
-    my_data = JSON.parse(resp.content)
+  #def fetch_facebook_data
+  #  client = HTTPClient.new
+  #  url = 'https://graph.facebook.com/%d' % uid
+  #  resp = client.get(url)
+  #  my_data = JSON.parse(resp.content)
 
-    return if my_data['error']
+  #  return if my_data['error']
 
-    my_data = data.update(my_data)
-    my_data['email'] = ('%s@facebook.com' % my_data['username']) if my_data['email'].blank?
+  #  my_data = data.update(my_data)
+  #  my_data['email'] = ('%s@facebook.com' % my_data['username']) if my_data['email'].blank?
 
-    update_attributes(
-      :data => my_data,
-      :email => my_data['email']
-    )
-  end
+  #  update_attributes(
+  #    :data => my_data,
+  #    :email => my_data['email']
+  #  )
+  #end
 
   def create_welcome_message
-    sender = User.find_by_uid(FACTORY_USER_UID)
+    sender = User.find_by_fb_id(FACTORY_USER_UID)
     return if sender.nil?
 
     gab = Gab.my_create(self, sender, 'Backdoor team', '')
@@ -154,22 +158,22 @@ class User < ActiveRecord::Base
 
     if registered
       push_message(msg)
-      return unless uid == FACTORY_USER_UID
+      return unless fb_id == FACTORY_USER_UID
     end
 
     unless email.blank?
       email_message(msg)
-      return unless uid == FACTORY_USER_UID
+      return unless fb_id == FACTORY_USER_UID
     end
 
     unless phone.blank?
       sms_message(msg, phone)
-      return unless uid == FACTORY_USER_UID
+      return unless fb_id == FACTORY_USER_UID
     end
 
     unless msg.gab.related_phone.blank?
       sms_message(msg, msg.gab.related_phone)
-      return unless uid == FACTORY_USER_UID
+      return unless fb_id == FACTORY_USER_UID
     end
 
     # NOTREACHED
@@ -180,7 +184,8 @@ class User < ActiveRecord::Base
   end
 
   before_save do |obj|
-    obj.data = {} unless obj.data
+    obj.fb_data = {} unless obj.fb_data
+    obj.gpp_data = {} unless obj.gpp_data
   end
 end
 
@@ -317,7 +322,7 @@ class Gab < ActiveRecord::Base
     elsif !used.include?('family') && !family.nil? && family.kind_of?(Array) && family.count > 0
       field = 'family'
       members = family.map { |x| x['id'] }
-      value = members.include?(current_user.uid)
+      value = members.include?(current_user.fb_id)
     elsif !used.include?('work') && !work.nil? && work.kind_of?(Array) && work.count > 0 && !work[0]['employer'].nil? && !work[0]['employer']['name'].nil?
       field = 'work'
       value = work[0]['employer']['name']
@@ -395,10 +400,7 @@ end
 class Token < ActiveRecord::Base
   belongs_to :user
 
-  def self.authenticate(access_token, user_data)
-
-    token = Token.find_by_access_token(access_token)
-    return [token, false] unless token.nil?
+  def self.auth_fb(access_token, fb_data)
 
     client = HTTPClient.new
     url = 'https://graph.facebook.com/me'
@@ -408,23 +410,68 @@ class Token < ActiveRecord::Base
 
     err 403, 'forbidden' unless data['id']
 
-    user = User.find_by_uid(data['id'])
+    user = User.find_by_fb_id(data['id'])
     user = User.find_by_email(data['email']) unless user
     user = User.create unless user
 
-    user.create_welcome_message unless user.registered == true
-
-    user_data = user.data.blank? ? data : user.data.update(data)
+    fb_data = user.fb_data.blank? ? data : user.fb_data.update(data)
 
     new_user = !user.registered
 
     user.update_attributes(
       :email => data['email'],
-      :uid => data['id'],
-      :data => user_data,
+      :fb_id => data['id'],
+      :fb_data => fb_data,
       :registered => true
     )
 
+    { :user => user, :new_user => new_user }
+  end
+
+  def self.auth_gpp(access_token, gpp_data)
+
+    client = HTTPClient.new
+    url = 'https://www.googleapis.com/oauth2/v1/tokeninfo'
+    resp = client.get(url, :access_token => access_token, :prettyPrint => true)
+    data = JSON.parse(resp.content)
+
+    err 403, 'forbidden' unless data['user_id']
+
+    user = User.find_by_gpp_id(data['user_id'])
+    user = User.find_by_email(data['email']) unless user
+    user = User.create unless user
+
+    gpp_data = user.gpp_data.blank? ? data : user.gpp_data.update(data)
+
+    new_user = !user.registered
+
+    user.update_attributes(
+      :email => data['email'],
+      :gpp_id => data['user_id'],
+      :gpp_data => gpp_data,
+      :registered => true
+    )
+
+    { :user => user, :new_user => new_user }
+  end
+
+  def self.authenticate(access_token, provider, fb_data, gpp_data)
+
+    token = Token.find_by_access_token(access_token)
+    return [token, false] unless token.nil?
+
+    if provider == 'facebook'
+      resp = self.auth_fb(access_token, fb_data)
+    elsif provider == 'gpp'
+      resp = self.auth_gpp(access_token, gpp_data)
+    else
+      err 403, 'forbidden'
+    end
+
+    user = resp[:user]
+    new_user = resp[:new_user]
+
+    user.create_welcome_message unless user.registered == true
     token = user.tokens.create(:access_token => access_token)
 
     [token, new_user]
@@ -506,7 +553,7 @@ class FeedbackDeliveryQueue
     return if fb.nil?
 
     user = fb.user
-    user_name = user.data['name'] || 'Anonymous user'
+    user_name = user.fb_data['name'] || 'Anonymous user'
     from = "%s <%s>" % [user_name, user.email]
 
     body = fb.content
