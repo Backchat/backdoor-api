@@ -305,39 +305,19 @@ class Gab < ActiveRecord::Base
     return if count > 3
     return unless current_user.available_clues > 0
 
-    data = related_gab.user.data
+    data = clue_data(related_gab.user, current_user)
 
-    gender = data['gender']
-    location = data['location']
-    family = data['family']
-    work = data['work']
-    edu = data['education']
+    [:gender, :location, :family, :work, :edu].each do |field|
+      next if used.include?(field.to_s) || data[field].nil?
 
-    if !used.include?('gender') && !gender.nil?
-      field = 'gender'
-      value = gender
-    elsif !used.include?('location') && !location.nil? && !location['name'].nil?
-      field = 'location'
-      value = location['name']
-    elsif !used.include?('family') && !family.nil? && family.kind_of?(Array) && family.count > 0
-      field = 'family'
-      members = family.map { |x| x['id'] }
-      value = members.include?(current_user.fb_id)
-    elsif !used.include?('work') && !work.nil? && work.kind_of?(Array) && work.count > 0 && !work[0]['employer'].nil? && !work[0]['employer']['name'].nil?
-      field = 'work'
-      value = work[0]['employer']['name']
-    elsif !used.include?('edu') && !edu.nil? && edu.kind_of?(Array) && edu.count > 0 && !edu[0]['school'].nil? && !edu[0]['school']['name'].nil?
-      field = 'edu'
-      value = edu[0]['school']['name']
-    else
-      return
+      clues.create(
+        :user => current_user,
+        :field => field.to_s,
+        :value => data[field]
+      )
+
+      break
     end
-
-    clues.create(
-      :user => current_user,
-      :field => field,
-      :value => value
-    )
   end
 end
 

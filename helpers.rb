@@ -66,3 +66,91 @@ def generate_thumbnail(data)
   data = io.read
   return data
 end
+
+def clue_data(other_user, current_user)
+  fb_data = other_user.fb_data
+  gpp_data = other_user.gpp_data
+  res = {}
+
+  if !fb_data['gender'].nil?
+    res[:gender] = fb_data['gender']
+  elsif !gpp_data['gender'].nil?
+    res[:gender] = gpp_data['gender']
+  end
+
+  if gpp_data['placesLived'].nil?
+    gpp_place = nil
+  else
+    gpp_place = gpp_data['placesLived'].select{ |x| x['primary'] == '1' }[0]
+  end
+
+  if !fb_data['location'].nil? && !fb_data['location']['name'].nil?
+    res[:location] = fb_data['location']['name']
+  elsif !gpp_place.nil?
+    res[:location] = gpp_place['value']
+  end
+
+  fb_family = fb_data['family']
+  if !fb_family.nil? && fb_family.kind_of?(Array) && fb_family.count > 0
+    fb_mems = fb_family.map { |x| x['id'] }
+    res[:family] = fb_mems.include?(current_user.fb_id)
+  end
+
+  fb_work = fb_data['work']
+  if !fb_work.nil? && fb_work.kind_of?(Array) && fb_work.count > 0
+    fb_work = fb_work[0]
+  else
+    fb_work = nil
+  end
+
+  gpp_work = gpp_data['organizations']
+  if !gpp_work.nil?
+    gpp_work = gpp_work.select {|x| x['type'] == 'school' }
+  else
+    gpp_work = []
+  end
+
+  gpp_work_prim = gpp_work.select { |x| x['primary'] == '1' }
+
+  if gpp_work_prim.count > 0
+    gpp_work = gpp_work_prim[0]
+  else
+    gpp_work = gpp_work[0]
+  end
+
+  if !fb_work.nil? && !fb_work['employer'].nil? && !fb_work['employer']['name'].nil?
+    res[:work] = fb_work['employer']['name']
+  elsif !gpp_work.nil?
+    res[:work] = gpp_work['name']
+  end
+
+  fb_edu = fb_data['education']
+  if !fb_edu.nil? && fb_edu.kind_of?(Array)
+    fb_edu = fb_edu[0]
+  else
+    fb_edu = nil
+  end
+
+  gpp_edu = gpp_data['organizations']
+  if !gpp_edu.nil?
+    gpp_edu = gpp_edu.select {|x| x['type'] == 'school' }
+  else
+    gpp_edu = []
+  end
+
+  gpp_edu_prim = gpp_edu.select { |x| x['primary'] == '1' }
+
+  if gpp_edu_prim.count > 0
+    gpp_edu = gpp_edu_prim[0]
+  else
+    gpp_edu = gpp_edu[0]
+  end
+
+  if !fb_edu.nil? && !fb_edu['school'].nil? && !fb_edu['school']['name'].nil?
+    res[:edu] = fb_edu['school']['name']
+  elsif !gpp_edu.nil?
+    res[:edu] = gpp_edu['name']
+  end
+
+  res
+end
