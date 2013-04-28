@@ -222,13 +222,12 @@ class Gab < ActiveRecord::Base
   def self.dump_updated(user, time, messages)
     fields = [:id, :related_user_name, :content_cache, :content_summary, :unread_count, :total_count, :sent, date_sql(:last_date)]
 
-    return [] if messages.count == 0
-
     gab_ids = messages.map { |x| x['gab_id'] }
+    gab_ids << -1
 
     sql = Gab
       .select(fields)
-      .where('id in (?)', gab_ids)
+      .where('id in (?) OR (user_id = ? AND updated_at > ?)', gab_ids, user, time)
       .order('last_date DESC')
       .to_sql
 

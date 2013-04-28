@@ -97,6 +97,17 @@ post '/clear-gab' do
   ok :sync_data => sync_data
 end
 
+post '/tag-gab' do
+  gab = Gab
+    .where('user_id = ?', @user)
+    .find(params[:id])
+
+  gab.related_user_name = params[:tag]
+  gab.save
+
+  ok :sync_data => sync_data
+end
+
 
 post '/buy-clues' do
   receipt = params[:receipt]
@@ -133,6 +144,22 @@ post '/buy-clues' do
   )
 
   ok :sync_data => sync_data
+end
+
+post '/free-clues' do
+  reason = params[:reason]
+
+  err 400, 'unknown reason' unless ['fbshare', 'fbinvite', 'tweet'].include?(reason)
+
+  count = 0
+  pur = Purchase.find_by_user_id_and_transaction_id(@user, reason)
+
+  if pur.nil?
+    count = 3
+    pur = Purchase.create(:transaction_id => reason, :user => @user, :clues => count)
+  end
+
+  ok :count => count, :sync_data => sync_data
 end
 
 post '/feedbacks' do
