@@ -1,5 +1,7 @@
 require 'resque'
 
+BASE_URL = 'http://capricalabs.com:7564/'
+
 ENV['DATABASE_URL'] = ENV['HEROKU_POSTGRESQL_JADE_URL']  unless ENV['DATABASE_URL']
 ENV['DATABASE_URL'] = 'postgres://localhost/youtell-api' unless ENV['DATABASE_URL']
 
@@ -40,3 +42,10 @@ FACTORY_USER_UID = "100004777423660"
 configure :production do
   require 'newrelic_rpm'
 end
+
+CLUES_001 = 5
+CLUES_002 = 15
+CLUES_003 = 50
+CLUES_FREE = 5
+
+CLUE_REASONS = ['fbshare', 'fblike', 'fbinvite', 'tweet']

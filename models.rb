@@ -52,6 +52,16 @@ class User < ActiveRecord::Base
     messages.where(:read => false, :deleted => false).count
   end
 
+  def avatar_url
+    if !self.fb_id.blank?
+      return 'https://graph.facebook.com/%s/picture' % self.fb_id
+    elsif !self.gpp_id.blank?
+      return 'http://profiles.google.com/s2/photos/profile/%s?sz=50' % self.gpp_id
+    else
+      return ''
+    end
+  end
+
   #def fetch_facebook_data
   #  client = HTTPClient.new
   #  url = 'https://graph.facebook.com/%d' % uid
@@ -84,7 +94,7 @@ class User < ActiveRecord::Base
       :last_date => gab.last_date + 5
     )
 
-    self.purchases.create(:clues => 3)
+    self.purchases.create(:clues => CLUES_FREE)
   end
 
   def email_message(msg)
@@ -201,6 +211,7 @@ class Gab < ActiveRecord::Base
     gab = Gab.create(
       :user_id => user.id,
       :related_user_name => related_user_name || '',
+      :related_avatar => receiver.avatar_url,
       :sent => true,
       :last_date => Time.now
     )
@@ -209,6 +220,7 @@ class Gab < ActiveRecord::Base
       :user_id => receiver.id,
       :related_gab_id => gab.id,
       :related_user_name => '',
+      :related_avatar => '',
       :related_phone => related_phone || '',
       :sent => false,
       :last_date => Time.now
@@ -220,7 +232,7 @@ class Gab < ActiveRecord::Base
   end
 
   def self.dump_updated(user, time, messages)
-    fields = [:id, :related_user_name, :content_cache, :content_summary, :unread_count, :total_count, :sent, date_sql(:last_date)]
+    fields = [:id, :related_user_name, :related_avatar, :content_cache, :content_summary, :unread_count, :total_count, :sent, date_sql(:last_date)]
 
     gab_ids = messages.map { |x| x['gab_id'] }
     gab_ids << -1

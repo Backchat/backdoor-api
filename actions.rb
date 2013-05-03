@@ -124,9 +124,9 @@ post '/buy-clues' do
   product_id = data['receipt']['product_id']
 
   products = {
-    'YouTell_Mobile_Clues_001' => 3,
-    'YouTell_Mobile_Clues_002' => 10,
-    'YouTell_Mobile_Clues_003' => 15
+    'YouTell_Mobile_Clues_001' => CLUES_001,
+    'YouTell_Mobile_Clues_002' => CLUES_002,
+    'YouTell_Mobile_Clues_003' => CLUES_003
   }
 
   product = products[product_id]
@@ -149,14 +149,18 @@ end
 post '/free-clues' do
   reason = params[:reason]
 
-  err 400, 'unknown reason' unless ['fbshare', 'fbinvite', 'tweet'].include?(reason)
+  err 400, 'unknown reason' unless reason == 'debug' or  CLUE_REASONS.include?(reason)
 
   count = 0
   pur = Purchase.find_by_user_id_and_transaction_id(@user, reason)
 
   if pur.nil?
-    count = 3
+    count = CLUES_FREE
     pur = Purchase.create(:transaction_id => reason, :user => @user, :clues => count)
+  elsif reason == 'debug'
+    count = CLUES_FREE
+    pur.clues += count
+    pur.save
   end
 
   ok :count => count, :sync_data => sync_data
@@ -197,4 +201,8 @@ end
 get '/admin' do
   protected!
   erb :admin
+end
+
+get '/fblike' do
+  erb :fblike
 end

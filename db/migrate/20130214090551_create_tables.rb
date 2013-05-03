@@ -26,6 +26,7 @@ class CreateTables < ActiveRecord::Migration
       t.integer   :related_gab_id,    :null => false, :default => 0
       t.string    :related_user_name, :null => false, :default => ''
       t.string    :related_phone,     :null => false, :default => ''
+      t.string    :related_avatar,    :null => false, :default => ''
 
       t.string    :content_cache,     :null => false, :default => ''
       t.string    :content_summary,   :null => false, :default => ''
