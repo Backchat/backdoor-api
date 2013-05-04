@@ -31,7 +31,7 @@ before do
   Gab.current_user = @user
 end
 
-post '/gabs' do
+post '/sync' do
   gab_id = params[:gab_id]
   unless gab_id.nil?
     gab = @user.gabs.find_by_id(gab_id)
@@ -42,7 +42,7 @@ post '/gabs' do
 end
 
 
-post '/gabs' do
+post '/create-message' do
   content = params[:content]
   kind = params[:kind]
 
