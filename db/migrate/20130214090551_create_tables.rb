@@ -4,6 +4,7 @@ class CreateTables < ActiveRecord::Migration
       t.boolean   :autocreated,       :null => false, :default => false
       t.boolean   :registered,        :null => false, :default => false
       t.boolean   :fake,              :null => false, :default => false
+      t.boolean   :featured,          :null => false, :default => false
 
       t.string    :phone,             :null => false, :default => ''
       t.string    :email,             :null => false, :default => ''

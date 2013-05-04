@@ -74,6 +74,10 @@ post '/create-message' do
   ok :gab_id => gab.id, :sync_data => sync_data
 end
 
+post '/featured-users' do
+  ok :users => User.dump_featured
+end
+
 post '/request-clue' do
   gab = Gab
     .where('user_id = ?', @user)

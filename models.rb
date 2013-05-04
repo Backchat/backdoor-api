@@ -42,6 +42,32 @@ class User < ActiveRecord::Base
     user
   end
 
+  def self.dump_featured
+    ret = []
+    User.where(:featured => true).each do |user|
+
+      if !user.fb_id.blank?
+        item = {
+          :type => 'facebook',
+          :value => user.fb_id,
+          :name => user.fb_data['name'] || '',
+        }
+      elsif !user.gpp_id.blank?
+        item = {
+          :type => 'gpp',
+          :value => user.gpp_id,
+          :name => user.gpp_data['displayName'] || ''
+        }
+      else
+        next
+      end
+
+      ret << item
+    end
+
+    ret
+  end
+
   def available_clues
     total = purchases.sum(:clues)
     used = clues.count
