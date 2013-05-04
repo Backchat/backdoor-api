@@ -3,8 +3,8 @@ before do
   access_token = params[:access_token]
   device_token = params[:device_token]
   provider = params[:provider]
-  fb_data = params[:fb_data]
-  gpp_data = params[:gpp_data]
+  fb_data = JSON.parse(params[:fb_data]) unless params[:fb_data].blank?
+  gpp_data = JSON.parse(params[:gpp_data]) unless params[:gpp_data].blank?
   blitz_token = params[:blitz_token]
 
   return if request.path == '/admin' or request.path == '/images'
@@ -13,21 +13,25 @@ before do
 
   @blitz_mode = (blitz_token == BLITZ_TOKEN)
 
-  auth = Token.authenticate(access_token, provider, fb_data, gpp_data)
-  token = auth[0]
-  device = Device.my_find_or_create(device_token, token.user)
+  token = Token.token_authenticate(access_token)
 
-  @user = token.user
-  Gab.current_user = token.user
+  if token.nil?
+    auth = Token.authenticate(access_token, provider, fb_data, gpp_data)
+    @user = auth[0]
+    @new_user = auth[1]
+  else
+    @user = token.user
+    @new_user = false
+    @user.fb_data = @user.fb_data.update(fb_data) unless fb_data.blank?
+    @user.gpp_data = @user.gpp_data.update(gpp_data) unless gpp_data.blank?
+    @user.save unless fb_data.blank? && gpp_data.blank?
+  end
 
-  @user.fb_data = @user.fb_data.update(fb_data) unless fb_data.blank?
-  @user.gpp_data = @user.gpp_data.update(gpp_data) unless gpp_data.blank?
-  @user.save unless fb_data.blank? && gpp_data.blank?
-
-  @new_user = auth[1]
+  device = Device.my_find_or_create(device_token, @user)
+  Gab.current_user = @user
 end
 
-get '/gabs' do
+post '/gabs' do
   gab_id = params[:gab_id]
   unless gab_id.nil?
     gab = @user.gabs.find_by_id(gab_id)
@@ -80,7 +84,7 @@ post '/request-clue' do
   ok :sync_data => sync_data
 end
 
-get '/check-uid' do
+post '/check-uid' do
   uid = params[:uid]
   user = User.find_by_fb_id(uid)
   user = User.find_by_gpp_id(uid) if user.nil?
@@ -201,8 +205,4 @@ end
 get '/admin' do
   protected!
   erb :admin
-end
-
-get '/fblike' do
-  erb :fblike
 end

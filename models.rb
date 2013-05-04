@@ -313,12 +313,13 @@ class Gab < ActiveRecord::Base
     used = clues.map { |x| x.field }
     count = used.count
 
-    return if count > 3
+    return if count > CLUES_MAX
     return unless current_user.available_clues > 0
 
-    data = clue_data(related_gab.user, current_user)
+    data = DataHelper.new(related_gab.user, current_user).load
+    puts data.inspect
 
-    [:gender, :location, :family, :work, :edu].each do |field|
+    data.keys.each do |field|
       next if used.include?(field.to_s) || data[field].nil?
 
       clues.create(
@@ -446,11 +447,12 @@ class Token < ActiveRecord::Base
     { :user => user, :new_user => new_user }
   end
 
-  def self.authenticate(access_token, provider, fb_data, gpp_data)
-
+  def self.token_authenticate(access_token)
     token = Token.find_by_access_token(access_token)
-    return [token, false] unless token.nil?
+    return token.nil? ? nil : token
+  end
 
+  def self.authenticate(access_token, provider, fb_data, gpp_data)
     if provider == 'facebook'
       resp = self.auth_fb(access_token, fb_data)
     elsif provider == 'gpp'
@@ -465,7 +467,7 @@ class Token < ActiveRecord::Base
     user.create_welcome_message unless user.registered == true
     token = user.tokens.create(:access_token => access_token)
 
-    [token, new_user]
+    [user, new_user]
   end
 end
 

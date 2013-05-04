@@ -47,5 +47,6 @@ CLUES_001 = 5
 CLUES_002 = 15
 CLUES_003 = 50
 CLUES_FREE = 5
+CLUES_MAX = 5
 
 CLUE_REASONS = ['fbshare', 'fblike', 'fbinvite', 'tweet']
