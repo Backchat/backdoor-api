@@ -75,7 +75,7 @@ post '/create-message' do
 end
 
 post '/featured-users' do
-  ok :users => User.dump_featured
+  ok :users => User.dump_featured(@user)
 end
 
 post '/request-clue' do

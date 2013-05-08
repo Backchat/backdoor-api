@@ -42,9 +42,10 @@ class User < ActiveRecord::Base
     user
   end
 
-  def self.dump_featured
+  def self.dump_featured(current_user)
     ret = []
     User.where(:featured => true).each do |user|
+      next if user.id == current_user.id
 
       if !user.fb_id.blank?
         item = {
