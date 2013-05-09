@@ -24,9 +24,9 @@ end
 namespace :db do
   task :create_factory_user do
     user = User.create({
-      :uid => FACTORY_USER_UID,
+      :fb_id => FACTORY_USER_UID,
       :registered => true,
-      :data => {}
+      :fb_data => {}
     })
   end
 end

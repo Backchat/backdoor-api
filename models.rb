@@ -112,14 +112,14 @@ class User < ActiveRecord::Base
 
     gab = Gab.my_create(self, sender, 'Backdoor team', '')
     gab.update_attributes(:related_user_name => 'Backdoor team')
-    gab.create_message('Welcome to Backdoor', MESSAGE_KIND_TEXT, false)
+    gab.create_message('Welcome to Backdoor!', MESSAGE_KIND_TEXT, false)
 
-    gab = Gab.my_create(self, sender, 'Backdoor team', '')
-    gab.create_message('This is another message', MESSAGE_KIND_TEXT, false)
-    gab.update_attributes(
-      :related_user_name => 'Backdoor team',
-      :last_date => gab.last_date + 5
-    )
+    #gab = Gab.my_create(self, sender, 'Backdoor team', '')
+    #gab.create_message('This is another message', MESSAGE_KIND_TEXT, false)
+    #gab.update_attributes(
+    #  :related_user_name => 'Backdoor team',
+    #  :last_date => gab.last_date + 5
+    #)
 
     self.purchases.create(:clues => CLUES_FREE)
   end
