@@ -189,6 +189,10 @@ post '/feedbacks' do
   ok {}
 end
 
+post '/check-updates' do
+  ok :current_version => CURRENT_VERSION
+end
+
 get '/images' do
   secret = params[:secret]
 

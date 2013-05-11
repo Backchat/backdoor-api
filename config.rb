@@ -1,5 +1,7 @@
 require 'resque'
 
+CURRENT_VERSION = '1.0_beta5.6'
+
 BASE_URL = 'http://capricalabs.com:7564/'
 
 ENV['DATABASE_URL'] = ENV['HEROKU_POSTGRESQL_JADE_URL']  unless ENV['DATABASE_URL']
