@@ -35,6 +35,7 @@ APN_GATEWAY_PROD = 'gateway.push.apple.com'
 BLITZ_TOKEN = '36a9c080ff6fdce0e32c66c3eb3edd9e'
 
 FEEDBACK_EMAIL = 'number1@capricalabs.com'
+ABUSE_REPORT_EMAIL = 'abuse@youtell.com'
 
 MESSAGE_KIND_TEXT = 0
 MESSAGE_KIND_PHOTO = 1

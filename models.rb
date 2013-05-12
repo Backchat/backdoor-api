@@ -524,6 +524,14 @@ class Feedback < ActiveRecord::Base
   end
 end
 
+class AbuseReport < ActiveRecord::Base
+  belongs_to :user
+
+  after_create do |ar|
+    Resque.enqueue(AbuseReportDeliveryQueue, ar.id)
+  end
+end
+
 class Image < ActiveRecord::Base
   def content_type
     'image/jpeg'
@@ -586,6 +594,32 @@ class FeedbackDeliveryQueue
       :subject => 'New feedback' % user_name,
       :from => from,
       :reply_to => fb.user.email,
+      :body => body,
+    )
+  end
+end
+
+class AbuseReportDeliveryQueue
+  @queue = :abuse_report_delivery
+
+  def self.perform(id)
+    ar = AbuseReport.find_by_id(id)
+    return if ar.nil?
+
+    user = ar.user
+    data = DataHelper.new(user, user).load
+    user_name = data['name'] || 'Anonymous user'
+    from = "%s <%s>" % [user_name, user.email]
+
+    body = ar.content
+
+    Pony.mail(
+      :to => ABUSE_REPORT_EMAIL,
+      :via => :smtp,
+      :via_options => SMTP_SETTINGS,
+      :subject => 'Abuse report from %s (#%s)' % [user_name, user.id],
+      :from => from,
+      :reply_to => user.email,
       :body => body,
     )
   end

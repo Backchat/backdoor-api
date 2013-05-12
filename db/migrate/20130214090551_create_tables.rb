@@ -101,6 +101,12 @@ class CreateTables < ActiveRecord::Migration
       t.timestamps
     end
 
+    create_table :abuse_reports do |t|
+      t.integer :user_id,             :null => false, :default => 0
+      t.text    :content,             :null => false, :default => ''
+      t.timestamps
+    end
+
     create_table :images do |t|
       t.string  :secret,              :null => false, :default => ''
       t.binary  :data,                :null => false, :default => ''

@@ -224,10 +224,18 @@ class DataHelper
     end
   end
 
+  def load_name
+    fb_name = @user.fb_data['name']
+    gpp_name = @user.gpp_data['displayName']
+    return fb_name unless fb_name.blank?
+    return gpp_name unless gpp_name.blank?
+    return nil
+  end
+
   def load
     ret = {}
 
-    [:gender, :location, :same_family, :same_work, :same_school, :like, :school, :work].each do |key|
+    [:gender, :location, :same_family, :same_work, :same_school, :like, :school, :work, :name].each do |key|
       begin
         method = 'load_%s' % key
         ret[key] = self.send(method)

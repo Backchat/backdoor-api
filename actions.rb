@@ -206,6 +206,16 @@ get '/images' do
   image.data
 end
 
+post '/report-abuse' do
+  content = params[:content]
+
+  err 400, 'invalid request' if content.blank?
+
+  ar = AbuseReport.create(:content => content, :user => @user)
+
+  ok {}
+end
+
 get '/ping' do
   ok 'pong'
 end
