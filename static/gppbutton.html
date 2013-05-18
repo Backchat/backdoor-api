@@ -1,0 +1,27 @@
+<html xmlns:fb="http://ogp.me/ns/fb#">
+
+<body>
+
+<script>
+function callback(json) {
+    if (json['state'] != 'on') {
+        return;
+    }
+
+    location.href = 'event:like';
+}
+</script>
+
+<div class="g-plusone" data-annotation="inline" data-width="250" data-callback="callback" data-href="http://youtell.com/"></div>
+
+<script type="text/javascript">
+  (function() {
+    var po = document.createElement('script'); po.type = 'text/javascript'; po.async = true;
+    po.src = 'https://apis.google.com/js/plusone.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(po, s);
+  })();
+</script>
+
+</body>
+
+</html>

@@ -2,7 +2,7 @@ require 'resque'
 
 CURRENT_VERSION = '1.0_beta5.6'
 
-BASE_URL = 'http://capricalabs.com:7564/'
+BASE_URL = 'https://capricalabs.com:7564/'
 
 ENV['DATABASE_URL'] = ENV['HEROKU_POSTGRESQL_JADE_URL']  unless ENV['DATABASE_URL']
 ENV['DATABASE_URL'] = 'postgres://localhost/youtell-api' unless ENV['DATABASE_URL']
@@ -46,10 +46,10 @@ configure :production do
   require 'newrelic_rpm'
 end
 
-CLUES_001 = 5
-CLUES_002 = 15
-CLUES_003 = 50
+CLUES_001 = 9
+CLUES_002 = 27
+CLUES_003 = 72
 CLUES_FREE = 5
-CLUES_MAX = 5
+CLUES_MAX = 9
 
-CLUE_REASONS = ['fbshare', 'fblike', 'fbinvite', 'tweet']
+CLUE_REASONS = ['fbshare', 'fblike', 'fbinvite', 'tweet', 'gppshare']

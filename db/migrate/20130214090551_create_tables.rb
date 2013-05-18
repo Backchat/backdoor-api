@@ -59,6 +59,7 @@ class CreateTables < ActiveRecord::Migration
     create_table :clues do |t|
       t.integer   :user_id,           :null => false, :default => 0
       t.integer   :gab_id,            :null => false, :default => 0
+      t.integer   :number,            :null => false, :default => 0
       t.string    :field,             :null => false, :default => ''
       t.string    :value,             :null => false, :default => ''
       t.timestamps

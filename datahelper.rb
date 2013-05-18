@@ -160,7 +160,7 @@ class DataHelper
     return ret if fb.nil?
 
     for item in fb
-      ret << item['name']
+      ret << '%s|%s' % ['https://graph.facebook.com/%s/picture?width=120&height=120' % item['id'], item['name']]
     end
 
     return ret
@@ -183,6 +183,10 @@ class DataHelper
   def load_like
     likes = self.load_fb_likes
     return likes.sample
+  end
+
+  def load_likes
+    return self.load_fb_likes
   end
 
   def load_work
@@ -235,7 +239,8 @@ class DataHelper
   def load
     ret = {}
 
-    [:gender, :location, :same_family, :same_work, :same_school, :like, :school, :work, :name].each do |key|
+    #[:gender, :location, :same_family, :same_work, :same_school, :like, :school, :work, :name].each do |key|
+    [:gender, :location, :work, :school, :likes, :name].each do |key|
       begin
         method = 'load_%s' % key
         ret[key] = self.send(method)
@@ -246,5 +251,40 @@ class DataHelper
       end
     end
     ret
+  end
+
+  def avail_clues(used)
+    data = self.load
+
+    used_fields = used.map { |x| x.field }
+    used_likes = used.select { |x| x.field == 'like' }.map { |x| x.value}
+
+    avail_count = 9 - used_fields.length
+
+    avail_likes = data[:likes].select { |x| !used_likes.include?(x) }
+    avail_clues = []
+
+    [:gender, :location, :work, :school].each do |key|
+      if !used_fields.include?(key.to_s) and !data[key].blank?
+        if key == :gender
+          file = data[key]
+        else
+          file = key.to_s
+        end
+
+        url = '%sclue_%s.png' % [BASE_URL, file]
+        avail_clues << [key, '%s|%s' % [url, data[key]]]
+      end
+    end
+
+    avail_likes.each do |like|
+      break if avail_clues.length >= avail_count
+      avail_clues << [:like, like]
+    end
+
+    puts used_fields.inspect
+    puts avail_likes.inspect
+
+    return avail_clues
   end
 end

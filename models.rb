@@ -336,27 +336,28 @@ class Gab < ActiveRecord::Base
     self.save
   end
 
-  def create_clue
+  def create_clue(number)
     used = clues.map { |x| x.field }
     count = used.count
 
+    puts clues.to_json.inspect
+
+    return if clues.where(:number => number).count > 0
     return if count > CLUES_MAX
     return unless current_user.available_clues > 0
 
-    data = DataHelper.new(related_gab.user, current_user).load
-    puts data.inspect
+    data = DataHelper.new(related_gab.user, current_user).avail_clues(clues)
 
-    data.keys.each do |field|
-      next if used.include?(field.to_s) || data[field].nil?
+    return if data.count == 0
 
-      clues.create(
-        :user => current_user,
-        :field => field.to_s,
-        :value => data[field]
-      )
+    sample = data.sample
 
-      break
-    end
+    return clues.create(
+      :user => current_user,
+      :number => number,
+      :field => sample[0].to_s,
+      :value => sample[1]
+    )
   end
 end
 
@@ -401,7 +402,7 @@ class Clue < ActiveRecord::Base
   belongs_to :user
 
   def self.dump_updated(user, time)
-    fields = [:id, :gab_id, :field, :value]
+    fields = [:id, :gab_id, :field, :value, :number]
 
     sql = Clue
       .select(fields)

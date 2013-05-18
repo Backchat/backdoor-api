@@ -79,13 +79,19 @@ post '/featured-users' do
 end
 
 post '/request-clue' do
+  number = params[:number]
+  gab_id = params[:gab_id]
+
+  err 400, 'invalid request' if number.blank? or gab_id.blank?
+
   gab = Gab
     .where('user_id = ?', @user)
     .find(params[:gab_id])
 
-  clue = gab.create_clue
+  clue = gab.create_clue(number.to_i)
+  success = !clue.nil?
 
-  ok :sync_data => sync_data
+  ok :success => success, :sync_data => sync_data
 end
 
 post '/check-uid' do
