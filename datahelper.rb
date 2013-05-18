@@ -8,10 +8,11 @@ class DataHelper
   def load_gender
     fb = @user.fb_data
     gpp = @user.gpp_data
+    genders = ['male', 'female']
 
-    if !fb['gender'].nil?
+    if genders.include?(fb['gender'])
       return fb['gender']
-    elsif !gpp['gender'].nil?
+    elsif genders.include?(gpp['gender'])
       return gpp['gender']
     else
       return nil
