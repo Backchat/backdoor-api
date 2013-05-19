@@ -269,8 +269,12 @@ class DataHelper
       if !used_fields.include?(key.to_s) and !data[key].blank?
         if key == :gender
           file = data[key]
-        else
-          file = key.to_s
+        elsif key == :school
+          file = 'school_2'
+        elsif key == :location
+          file = 'city'
+        elsif key == :work
+          file = 'work'
         end
 
         url = '%sclue_%s.png' % [BASE_URL, file]
