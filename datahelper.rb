@@ -1,8 +1,7 @@
 class DataHelper
 
-  def initialize(user, other)
+  def initialize(user)
     @user = user
-    @other = other
   end
 
   def load_gender
@@ -136,22 +135,6 @@ class DataHelper
     end
   end
 
-  def load_same_family
-    family = self.load_fb_family
-    return 'yes' if family.include?(@other.fb_id)
-  end
-
-  def load_same_school
-    mine = load_school
-    his = DataHelper.new(@other, nil).load_school
-    return 'yes' if mine != nil && mine == his
-  end
-
-  def load_same_work
-    mine = load_work
-    his = DataHelper.new(@other, nil).load_work
-    return 'yes' if mine != nil && mine == his
-  end
 
   def load_fb_likes
     fb = @user.fb_data['likes']
@@ -240,7 +223,6 @@ class DataHelper
   def load
     ret = {}
 
-    #[:gender, :location, :same_family, :same_work, :same_school, :like, :school, :work, :name].each do |key|
     [:gender, :location, :work, :school, :likes, :name].each do |key|
       begin
         method = 'load_%s' % key
@@ -254,19 +236,16 @@ class DataHelper
     ret
   end
 
-  def avail_clues(used)
+  def avail_clues
     data = self.load
 
-    used_fields = used.map { |x| x.field }
-    used_likes = used.select { |x| x.field == 'like' }.map { |x| x.value}
+    avail_count = CLUES_MAX
 
-    avail_count = 9 - used_fields.length
-
-    avail_likes = data[:likes].select { |x| !used_likes.include?(x) }
+    avail_likes = data[:likes]
     avail_clues = []
 
     [:gender, :location, :work, :school].each do |key|
-      if !used_fields.include?(key.to_s) and !data[key].blank?
+      if !data[key].blank?
         if key == :gender
           file = data[key]
         elsif key == :school
@@ -286,9 +265,6 @@ class DataHelper
       break if avail_clues.length >= avail_count
       avail_clues << [:like, like]
     end
-
-    puts used_fields.inspect
-    puts avail_likes.inspect
 
     return avail_clues
   end

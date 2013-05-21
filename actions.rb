@@ -88,7 +88,11 @@ post '/request-clue' do
     .where('user_id = ?', @user)
     .find(params[:gab_id])
 
-  clue = gab.create_clue(number.to_i)
+  clues = gab.clues.where(:number => number.to_i)
+
+  err 400, 'invalid request' if clues.count == 0
+
+  clue = clues[0].reveal
   success = !clue.nil?
 
   ok :success => success, :sync_data => sync_data

@@ -33,6 +33,7 @@ class CreateTables < ActiveRecord::Migration
       t.string    :content_summary,   :null => false, :default => ''
       t.integer   :unread_count,      :null => false, :default => 0
       t.integer   :total_count,       :null => false, :default => 0
+      t.integer   :clue_count,        :null => false, :default => 0
       t.boolean   :sent,              :null => false, :default => false
       t.datetime  :last_date,         :null => false, :default => Time.new(1970,1,1)
 
@@ -62,6 +63,7 @@ class CreateTables < ActiveRecord::Migration
       t.integer   :number,            :null => false, :default => 0
       t.string    :field,             :null => false, :default => ''
       t.string    :value,             :null => false, :default => ''
+      t.boolean   :revealed,          :null => false, :default => false
       t.timestamps
     end
 

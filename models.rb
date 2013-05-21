@@ -71,7 +71,7 @@ class User < ActiveRecord::Base
 
   def available_clues
     total = purchases.sum(:clues)
-    used = clues.count
+    used = clues.where(:revealed => true).count
     total - used
   end
 
@@ -254,12 +254,13 @@ class Gab < ActiveRecord::Base
     )
 
     gab.update_attributes(:related_gab_id => gab_recv.id)
+    gab_recv.create_clues
 
     gab
   end
 
   def self.dump_updated(user, time, messages)
-    fields = [:id, :related_user_name, :related_avatar, :content_cache, :content_summary, :unread_count, :total_count, :sent, date_sql(:last_date)]
+    fields = [:id, :related_user_name, :related_avatar, :content_cache, :content_summary, :unread_count, :total_count, :clue_count, :sent, date_sql(:last_date)]
 
     gab_ids = messages.map { |x| x['gab_id'] }
     gab_ids << -1
@@ -336,28 +337,21 @@ class Gab < ActiveRecord::Base
     self.save
   end
 
-  def create_clue(number)
-    used = clues.map { |x| x.field }
-    count = used.count
+  def create_clues
+    data = DataHelper.new(related_gab.user).avail_clues.shuffle
 
-    puts clues.to_json.inspect
+    data.each_index do |i|
+      item = data[i]
 
-    return if clues.where(:number => number).count > 0
-    return if count > CLUES_MAX
-    return unless current_user.available_clues > 0
+      clues.create(
+        :user => self.user,
+        :number => i,
+        :field => item[0].to_s,
+        :value => item[1]
+      )
+    end
 
-    data = DataHelper.new(related_gab.user, current_user).avail_clues(clues)
-
-    return if data.count == 0
-
-    sample = data.sample
-
-    return clues.create(
-      :user => current_user,
-      :number => number,
-      :field => sample[0].to_s,
-      :value => sample[1]
-    )
+    self.update_attributes(:clue_count => data.count)
   end
 end
 
@@ -408,12 +402,22 @@ class Clue < ActiveRecord::Base
       .select(fields)
       .where('user_id = ?', user)
       .where('updated_at > ?', time)
+      .where(:revealed => true)
       .order('created_at DESC')
       .to_sql
 
     clues = ActiveRecord::Base.connection.select_all(sql)
 
     clues
+  end
+
+  def reveal
+    return nil unless self.user.available_clues > 0
+
+    self.revealed = true
+    self.save
+
+    return self
   end
 end
 
