@@ -72,7 +72,7 @@ class User < ActiveRecord::Base
   def available_clues
     total = purchases.sum(:clues)
     used = clues.where(:revealed => true).count
-    total - used
+    [0, total-used].max
   end
 
   def unread_messages
@@ -107,6 +107,8 @@ class User < ActiveRecord::Base
   #end
 
   def create_welcome_message
+    self.purchases.create(:clues => CLUES_FREE)
+
     sender = User.find_by_fb_id(FACTORY_USER_UID)
     return if sender.nil?
 
@@ -120,8 +122,6 @@ class User < ActiveRecord::Base
     #  :related_user_name => 'Backdoor team',
     #  :last_date => gab.last_date + 5
     #)
-
-    self.purchases.create(:clues => CLUES_FREE)
   end
 
   def email_message(msg)
