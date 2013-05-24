@@ -496,7 +496,7 @@ class Token < ActiveRecord::Base
     user = resp[:user]
     new_user = resp[:new_user]
 
-    user.create_welcome_message unless user.registered == true
+    user.create_welcome_message if new_user
     token = user.tokens.create(:access_token => access_token)
 
     [user, new_user]

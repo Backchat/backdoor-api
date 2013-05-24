@@ -49,7 +49,7 @@ end
 CLUES_001 = 9
 CLUES_002 = 27
 CLUES_003 = 72
-CLUES_FREE = 5
+CLUES_FREE = 9
 CLUES_MAX = 9
 
 CLUE_REASONS = ['fbshare', 'fblike', 'fbinvite', 'tweet', 'gppshare']
