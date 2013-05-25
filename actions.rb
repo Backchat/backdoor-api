@@ -226,6 +226,19 @@ post '/report-abuse' do
   ok {}
 end
 
+post '/update-settings' do
+  key = params[:key]
+  value = params[:value]
+  value = JSON.load(value)
+
+  err 400, 'invalid request' if key.blank? or value.blank?
+
+  @user.settings[key] = value["value"]
+  @user.save
+
+  ok :sync_data => sync_data
+end
+
 get '/ping' do
   ok 'pong'
 end

@@ -20,6 +20,7 @@ class User < ActiveRecord::Base
 
   serialize :fb_data
   serialize :gpp_data
+  serialize :settings
 
   def self.my_find_or_create(fb_id, gpp_id, email, phone, fake = false)
     user = User.find_or_create_by_fb_id(fb_id) unless fb_id.blank?
@@ -175,11 +176,24 @@ class User < ActiveRecord::Base
     sender = msg.gab.related_user_name
     sender = 'Someone' if sender.blank?
 
+    user = msg.user
+    message_preview = !!user.settings["message_preview"]
+
+    if message_preview and msg.summary.length > 0
+      alert = "%s: %s" % [sender, msg.summary]
+    else
+      alert = "%s sent you a Backdoor message." % sender
+    end
+
+    if alert.length > 100
+      alert = alert[0..96] + "..."
+    end
+
     devices.each do |device|
       ActiveRecord::Base.logger.info 'Delivering apn to %s' % device.device_token
       notification = Grocer::Notification.new(
         device_token: device.device_token,
-        alert:        "%s sent you a Backdoor message." % sender,
+        alert:        alert,
         badge:        msg.user.unread_messages,
         sound:        'default',
         custom:       { :gab_id => msg.gab.id }
@@ -223,6 +237,7 @@ class User < ActiveRecord::Base
   before_save do |obj|
     obj.fb_data = {} unless obj.fb_data
     obj.gpp_data = {} unless obj.gpp_data
+    obj.settings = USER_DEFAULT_SETTINGS unless obj.settings
   end
 end
 

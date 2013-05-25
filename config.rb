@@ -42,6 +42,8 @@ MESSAGE_KIND_PHOTO = 1
 
 FACTORY_USER_UID = "100004777423660"
 
+USER_DEFAULT_SETTINGS = {'message_preview' => false}
+
 configure :production do
   require 'newrelic_rpm'
 end

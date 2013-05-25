@@ -31,12 +31,14 @@ helpers do
     gabs = Gab.dump_updated(@user, old_time, messages)
     clues = Clue.dump_updated(@user, old_time)
     unread_messages = @user.unread_messages
+    settings = @user.settings
 
     logger.info '-----'
     logger.info 'Syncing with time: %s, uid: %s' % [old_time, old_uid]
     logger.info 'Current time: %s, uid: %s' % [sync_time, sync_uid]
     logger.info 'Messages: %d, gabs: %d, clues: %d' % [messages.count, gabs.count, clues.count]
     logger.info 'Avail clues: %d, unread messages: %d' % [avail_clues, unread_messages]
+    logger.info 'Settings: %s' % [settings.to_json]
     logger.info '-----'
 
     return {
@@ -47,7 +49,8 @@ helpers do
       :sync_uid => sync_uid,
       :available_clues => avail_clues,
       :unread_messages => unread_messages,
-      :new_user => @new_user
+      :settings => settings,
+      :new_user => @new_user,
     }
   end
 end

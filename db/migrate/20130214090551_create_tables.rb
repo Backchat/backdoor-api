@@ -12,6 +12,7 @@ class CreateTables < ActiveRecord::Migration
       t.string    :fb_id,             :null => false, :default => ''
       t.text      :gpp_data,          :null => false, :default => ''
       t.text      :fb_data,           :null => false, :default => ''
+      t.text      :settings,          :null => false, :default => ''
 
       t.timestamps
     end
