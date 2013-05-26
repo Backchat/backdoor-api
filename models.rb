@@ -115,7 +115,7 @@ class User < ActiveRecord::Base
 
     gab = Gab.my_create(self, sender, 'Backdoor team', '')
     gab.update_attributes(:related_user_name => 'Backdoor team')
-    gab.create_message('Welcome to Backdoor!', MESSAGE_KIND_TEXT, false)
+    gab.create_message('Welcome to Backdoor!', MESSAGE_KIND_TEXT, false, '')
 
     #gab = Gab.my_create(self, sender, 'Backdoor team', '')
     #gab.create_message('This is another message', MESSAGE_KIND_TEXT, false)
@@ -141,7 +141,7 @@ class User < ActiveRecord::Base
   def sms_message(msg, phone_number)
     if msg.kind != MESSAGE_KIND_TEXT
       related_gab = msg.gab.related_gab
-      related_gab.create_message("ERROR_SMS_PHOTO_DELIVERY", MESSAGE_KIND_TEXT, false)
+      related_gab.create_message("ERROR_SMS_PHOTO_DELIVERY", MESSAGE_KIND_TEXT, false, '')
       return
     end
 
@@ -157,7 +157,7 @@ class User < ActiveRecord::Base
     rescue
       ActiveRecord::Base.logger.error $!.class.to_s + ': ' + $!.message
       ActiveRecord::Base.logger.error $!.backtrace.join("\n")
-      msg.gab.related_gab.create_message("ERROR_SMS_DELIVERY", MESSAGE_KIND_TEXT, false)
+      msg.gab.related_gab.create_message("ERROR_SMS_DELIVERY", MESSAGE_KIND_TEXT, false, '')
     end
   end
 
@@ -235,9 +235,9 @@ class User < ActiveRecord::Base
   end
 
   before_save do |obj|
-    obj.fb_data = {} unless obj.fb_data
-    obj.gpp_data = {} unless obj.gpp_data
-    obj.settings = USER_DEFAULT_SETTINGS unless obj.settings
+    obj.fb_data = {} if obj.fb_data.blank?
+    obj.gpp_data = {} if obj.gpp_data.blank?
+    obj.settings = USER_DEFAULT_SETTINGS if obj.settings.blank?
   end
 end
 
@@ -291,7 +291,7 @@ class Gab < ActiveRecord::Base
     gabs
   end
 
-  def create_message(content, kind, sent)
+  def create_message(content, kind, sent, key)
     if kind == MESSAGE_KIND_TEXT
       secret = ''
     elsif kind == MESSAGE_KIND_PHOTO
@@ -315,6 +315,7 @@ class Gab < ActiveRecord::Base
       :content => content,
       :kind => kind,
       :secret => secret,
+      :key => key,
       :read => sent,
       :sent => sent,
       :user => user,
@@ -375,7 +376,7 @@ class Message < ActiveRecord::Base
   belongs_to :gab
 
   def self.dump_updated(user, time)
-    fields = [:id, :gab_id, :content, :kind, :sent, :deleted, :secret, date_sql(:created_at)]
+    fields = [:id, :gab_id, :content, :kind, :sent, :deleted, :secret, :key, date_sql(:created_at)]
 
     sql = Message
       .select(fields)

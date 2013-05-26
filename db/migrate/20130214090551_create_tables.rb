@@ -49,6 +49,7 @@ class CreateTables < ActiveRecord::Migration
       t.text      :content,           :null => false, :default => ''
       t.integer   :kind,              :null => false, :default => 0
       t.string    :secret,            :null => false, :default => ''
+      t.string    :key,               :null => false, :default => ''
       t.boolean   :read,              :null => false, :default => false
       t.boolean   :deleted,           :null => false, :default => false
       t.boolean   :sent,              :null => false, :default => false

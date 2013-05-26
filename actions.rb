@@ -45,6 +45,7 @@ end
 post '/create-message' do
   content = params[:content]
   kind = params[:kind]
+  key = params[:key] || ''
 
   err 400, 'invalid request' if content.blank? or kind.blank?
  
@@ -66,8 +67,8 @@ post '/create-message' do
     gab = Gab.my_create(@user, receiver, related_user_name, related_phone)
   end
 
-  gab.create_message(content, kind, true)
-  gab.related_gab.create_message(content, kind, false)
+  gab.create_message(content, kind, true, key)
+  gab.related_gab.create_message(content, kind, false, '')
 
   gab.mark_read
 
