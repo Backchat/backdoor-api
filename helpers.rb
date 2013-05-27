@@ -1,6 +1,8 @@
 require 'sinatra'
 require 'mini_magick'
 require './datahelper'
+require 'securerandom'
+
 
 helpers do
   def protected!
@@ -70,3 +72,8 @@ def generate_thumbnail(data)
   data = io.read
   return data
 end
+
+def random_key
+  SecureRandom.hex[0..7]
+end
+

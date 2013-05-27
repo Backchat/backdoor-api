@@ -68,7 +68,7 @@ post '/create-message' do
   end
 
   gab.create_message(content, kind, true, key)
-  gab.related_gab.create_message(content, kind, false, '')
+  gab.related_gab.create_message(content, kind, false, key)
 
   gab.mark_read
 

@@ -115,14 +115,7 @@ class User < ActiveRecord::Base
 
     gab = Gab.my_create(self, sender, 'Backdoor team', '')
     gab.update_attributes(:related_user_name => 'Backdoor team')
-    gab.create_message('Welcome to Backdoor!', MESSAGE_KIND_TEXT, false, '')
-
-    #gab = Gab.my_create(self, sender, 'Backdoor team', '')
-    #gab.create_message('This is another message', MESSAGE_KIND_TEXT, false)
-    #gab.update_attributes(
-    #  :related_user_name => 'Backdoor team',
-    #  :last_date => gab.last_date + 5
-    #)
+    gab.create_message('Welcome to Backdoor!', MESSAGE_KIND_TEXT, false, random_key)
   end
 
   def email_message(msg)
@@ -141,7 +134,7 @@ class User < ActiveRecord::Base
   def sms_message(msg, phone_number)
     if msg.kind != MESSAGE_KIND_TEXT
       related_gab = msg.gab.related_gab
-      related_gab.create_message("ERROR_SMS_PHOTO_DELIVERY", MESSAGE_KIND_TEXT, false, '')
+      related_gab.create_message("ERROR_SMS_PHOTO_DELIVERY", MESSAGE_KIND_TEXT, false, random_key)
       return
     end
 
@@ -157,7 +150,7 @@ class User < ActiveRecord::Base
     rescue
       ActiveRecord::Base.logger.error $!.class.to_s + ': ' + $!.message
       ActiveRecord::Base.logger.error $!.backtrace.join("\n")
-      msg.gab.related_gab.create_message("ERROR_SMS_DELIVERY", MESSAGE_KIND_TEXT, false, '')
+      msg.gab.related_gab.create_message("ERROR_SMS_DELIVERY", MESSAGE_KIND_TEXT, false, random_key)
     end
   end
 
