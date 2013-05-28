@@ -256,7 +256,7 @@ class DataHelper
           file = 'work'
         end
 
-        url = '%sclue_%s.png' % [BASE_URL, file]
+        url = '%sclue_%s@2x.png' % [BASE_URL, file]
         avail_clues << [key, '%s|%s' % [url, data[key]]]
       end
     end
