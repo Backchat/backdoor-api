@@ -20,14 +20,26 @@ helpers do
   def sync_data
     old_time = params[:sync_time]
     old_uid = params[:sync_uid]
+    old_db_timestamp = params[:db_timestamp]
     provider = params[:provider]
+
+    begin
+      old_db_timestamp = DateTime.parse(old_db_timestamp)
+    rescue
+      old_db_timestamp = nil
+    end
+    db_timestamp = DateTime.parse(DB_TIMESTAMP)
+
+    if old_db_timestamp != db_timestamp
+      old_time = DB_TIMESTAMP
+    end
 
     sync_time = Time.now.to_formatted_s :db
     sync_uid = @user.id.to_s
 
     avail_clues = @user.available_clues.to_s
 
-    old_time = (old_uid != sync_uid or old_time.blank?) ? Time.at(0) : Time.parse(old_time)
+    old_time = (old_uid != sync_uid or old_time.blank?) ? db_timestamp : Time.parse(old_time)
 
     messages = Message.dump_updated(@user, old_time)
     gabs = Gab.dump_updated(@user, old_time, messages)
@@ -36,7 +48,7 @@ helpers do
     settings = @user.settings
 
     logger.info '-----'
-    logger.info 'Syncing with time: %s, uid: %s' % [old_time, old_uid]
+    logger.info 'Syncing with time: %s, uid: %s, dbtime: %s' % [old_time, old_uid, db_timestamp]
     logger.info 'Current time: %s, uid: %s' % [sync_time, sync_uid]
     logger.info 'Messages: %d, gabs: %d, clues: %d' % [messages.count, gabs.count, clues.count]
     logger.info 'Avail clues: %d, unread messages: %d' % [avail_clues, unread_messages]
@@ -49,6 +61,7 @@ helpers do
       :clues => clues,
       :sync_time => sync_time,
       :sync_uid => sync_uid,
+      :db_timestamp => db_timestamp,
       :available_clues => avail_clues,
       :unread_messages => unread_messages,
       :settings => settings,

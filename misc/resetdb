@@ -1,4 +1,18 @@
-dropdb youtell-api
-createdb youtell-api
-rake db:migrate
-rake db:create_factory_user
+#!/usr/bin/env ruby
+
+require './api'
+
+User.destroy_all
+
+config_data = File.new('config.rb').read
+config_data = config_data.gsub(/DB_TIMESTAMP = '[^']*'/, "DB_TIMESTAMP = '%s'" % [DateTime.now])
+
+file = File.new('config.rb','w')
+file.puts(config_data)
+file.close
+
+#dropdb youtell-api
+#createdb youtell-api
+#rake db:migrate
+#rake db:create_factory_user
+
