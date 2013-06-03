@@ -220,29 +220,30 @@ class DataHelper
     return nil
   end
 
-  def load_age
-    fb_bday = @user.fb_data['birthday']
-    gpp_bday = @user.gpp_data['birthday']
-
-    age = nil
-    bday = nil
-
-    bday = Date.strptime(fb_bday, '%m/%d/%Y') unless fb_bday.blank?
-    bday = Date.strptime(gpp_bday, '%Y-%m-%d') unless gpp_bday.blank?
-    today = Date.today
-
-    if bday.year > 0
-      age = today.year - bday.year
-      age -= 1 if bday + age.years > today
-    end
-
-    return age
-  end
+  # def load_age
+  #   fb_bday = @user.fb_data['birthday']
+  #   gpp_bday = @user.gpp_data['birthday']
+  # 
+  #   age = nil
+  #   bday = nil
+  # 
+  #   bday = Date.strptime(fb_bday, '%m/%d/%Y') unless fb_bday.blank?
+  #   bday = Date.strptime(gpp_bday, '%Y-%m-%d') unless gpp_bday.blank?
+  #   today = Date.today
+  # 
+  #   if bday.year > 0
+  #     age = today.year - bday.year
+  #     age -= 1 if bday + age.years > today
+  #   end
+  # 
+  #   return age
+  # end
 
   def load
     ret = {}
 
-    [:gender, :location, :work, :school, :likes, :name, :age].each do |key|
+    #removed age - [:gender, :location, :work, :school, :likes, :name, :age].each do |key|
+    [:gender, :location, :work, :school, :likes, :name ].each do |key|
       begin
         method = 'load_%s' % key
         ret[key] = self.send(method)
@@ -262,8 +263,9 @@ class DataHelper
 
     avail_likes = data[:likes]
     avail_clues = []
-
-    [:gender, :location, :work, :school, :age].each do |key|
+    
+    #removed age - [:gender, :location, :work, :school, :age].each do |key|
+    [:gender, :location, :work, :school].each do |key|
       if !data[key].blank?
         if key == :gender
           file = data[key]
@@ -273,9 +275,11 @@ class DataHelper
           file = 'city'
         elsif key == :work
           file = 'work'
-        elsif key == :age
-          file = 'age'
         end
+        ##removed age
+        # elsif key == :age
+        #   file = 'age'
+        #end
 
         url = '%sclue_%s@2x.png' % [BASE_URL, file]
         avail_clues << [key, '%s|%s' % [url, data[key]]]
