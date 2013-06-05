@@ -22,9 +22,15 @@ before do
   else
     @user = token.user
     @new_user = false
-    @user.fb_data = @user.fb_data.update(fb_data) unless fb_data.blank?
-    @user.gpp_data = @user.gpp_data.update(gpp_data) unless gpp_data.blank?
-    @user.save unless fb_data.blank? && gpp_data.blank?
+
+    if @user.fb_data != fb_data && !fb_data.blank?
+      @user.fb_data = fb_data
+      @user.save
+    end
+    if @user.gpp_data != gpp_data && !gpp_data.blank?
+      @user.gpp_data = gpp_data
+      @user.save
+    end
   end
 
   device = Device.my_find_or_create(device_token, @user)
