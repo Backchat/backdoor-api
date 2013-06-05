@@ -56,7 +56,6 @@ end
 
 error do
   boom = env['sinatra.error']
-  ActiveRecord::Base.logger.error boom.backtrace.join("\n")
   msg = ["#{boom.class} - #{boom.message}:", *boom.backtrace].join("\n\t")
   @env['rack.errors'].puts(msg)
 

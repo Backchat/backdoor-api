@@ -57,4 +57,4 @@ CLUES_MAX = 9
 
 CLUE_REASONS = ['fbshare', 'fblike', 'fbinvite', 'tweet', 'gppshare']
 
-DB_TIMESTAMP = '2013-06-02T21:05:51+00:00'
+DB_TIMESTAMP = '2013-06-03T21:05:51+00:00'
