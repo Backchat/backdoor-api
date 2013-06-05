@@ -247,7 +247,7 @@ post '/update-settings' do
 end
 
 get '/ping' do
-  ok 'pong'
+  ok :base_url => BASE_URL, :database_url: DATABASE_URL
 end
 
 get '/admin' do

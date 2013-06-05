@@ -2,7 +2,8 @@ require 'resque'
 
 CURRENT_VERSION = '1.0_beta5.6'
 
-BASE_URL = 'https://capricalabs.com:7564/'
+BASE_URL = ENV['BACKDOOR_BASE_URL'] if ENV['BACKDOOR_BASE_URL']
+BASE_URL = 'https://capricalabs.com:7564/' unless ENV['BACKDOOR_BASE_URL']
 
 ENV['DATABASE_URL'] = ENV['HEROKU_POSTGRESQL_JADE_URL']  unless ENV['DATABASE_URL']
 ENV['DATABASE_URL'] = 'postgres://localhost/youtell-api' unless ENV['DATABASE_URL']
