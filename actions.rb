@@ -7,7 +7,7 @@ before do
   gpp_data = JSON.parse(params[:gpp_data]) unless params[:gpp_data].blank?
   blitz_token = params[:blitz_token]
 
-  return if request.path == '/admin' or request.path == '/images'
+  return if request.path == '/admin' or request.path == '/images' or request.path == '/ping'
 
   err 400, 'invalid request' if access_token.nil?
 
