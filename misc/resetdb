@@ -4,12 +4,12 @@ require './api'
 
 User.destroy_all
 
-config_data = File.new('config.rb').read
-config_data = config_data.gsub(/DB_TIMESTAMP = '[^']*'/, "DB_TIMESTAMP = '%s'" % [DateTime.now])
+#config_data = File.new('config.rb').read
+#config_data = config_data.gsub(/DB_TIMESTAMP = '[^']*'/, "DB_TIMESTAMP = '%s'" % [DateTime.now])
 
-file = File.new('config.rb','w')
-file.puts(config_data)
-file.close
+#file = File.new('config.rb','w')
+#file.puts(config_data)
+#file.close
 
 #dropdb youtell-api
 #createdb youtell-api
