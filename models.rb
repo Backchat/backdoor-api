@@ -571,9 +571,9 @@ class DeviceCleanupQueue
 
   def self.perform
     feedback = Grocer.feedback(
-      certificate:  APN_CERT,
-      passphrase:   APN_PASS,
-      gateway:      "feedback.push.apple.com",
+      certificate:  APN_CERT_PROD,
+      gateway:      APN_GATEWAY_PROD,
+      passphrase:   '',
       port:         2196,
       retries:      3
     )
