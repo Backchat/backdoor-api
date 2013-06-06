@@ -261,7 +261,7 @@ class DataHelper
 
     avail_count = CLUES_MAX
 
-    avail_likes = data[:likes]
+    avail_likes = data[:likes].shuffle
     avail_clues = []
     
     #removed age - [:gender, :location, :work, :school, :age].each do |key|
@@ -287,12 +287,12 @@ class DataHelper
     end
 
     avail_likes.each do |like|
-      #break if avail_clues.length >= avail_count
+      break if avail_clues.length >= avail_count
       avail_clues << [:like, like]
     end
 
     avail_clues = avail_clues.shuffle
-    avail_clues = avail_clues[0..(CLUES_MAX-1)]
+    #avail_clues = avail_clues[0..(CLUES_MAX-1)]
 
     return avail_clues
   end
