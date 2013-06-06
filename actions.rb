@@ -182,6 +182,8 @@ post '/free-clues' do
   if pur.nil?
     count = CLUES_FREE
     pur = Purchase.create(:transaction_id => reason, :user => @user, :clues => count)
+    @user.settings['has_shared'] = true
+    @user.save
   elsif reason == 'debug'
     count = CLUES_FREE
     pur.clues += count
