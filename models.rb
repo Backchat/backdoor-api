@@ -108,7 +108,7 @@ class User < ActiveRecord::Base
   #end
 
   def create_welcome_message
-    self.purchases.create(:clues => CLUES_FREE)
+    self.purchases.create(:clues => CLUES_DEFAULT)
 
     sender = User.find_by_fb_id(FACTORY_USER_UID)
     return if sender.nil?
