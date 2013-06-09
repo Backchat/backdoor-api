@@ -124,10 +124,10 @@ class User < ActiveRecord::Base
       :to => email,
       :via => :smtp,
       :via_options => SMTP_SETTINGS,
-      :subject => 'New message on YouTell',
-      :from => 'YouTell Mobile <noreply@youtell.com>',
-      :reply_to => 'noreply@youtell.com',
-      :body => msg.content + "\n\nMessage sent by YouTell Mobile"
+      :subject => 'Backdoor Message',
+      :from => 'Backdoor <noreply@backdoorapp.com>',
+      :reply_to => 'noreply@backdoorapp.com',
+      :body => msg.content + "\n\nYou've been Backdoored"
     )
   end
 
@@ -205,20 +205,20 @@ class User < ActiveRecord::Base
       return unless fb_id == FACTORY_USER_UID
     end
 
-    unless email.blank?
-      email_message(msg)
-      return unless fb_id == FACTORY_USER_UID
-    end
-
-    unless phone.blank?
-      sms_message(msg, phone)
-      return unless fb_id == FACTORY_USER_UID
-    end
-
-    unless msg.gab.related_phone.blank?
-      sms_message(msg, msg.gab.related_phone)
-      return unless fb_id == FACTORY_USER_UID
-    end
+    # unless email.blank?
+    #   email_message(msg)
+    #   return unless fb_id == FACTORY_USER_UID
+    # end
+    # 
+    # unless phone.blank?
+    #   sms_message(msg, phone)
+    #   return unless fb_id == FACTORY_USER_UID
+    # end
+    # 
+    # unless msg.gab.related_phone.blank?
+    #   sms_message(msg, msg.gab.related_phone)
+    #   return unless fb_id == FACTORY_USER_UID
+    # end
 
     # NOTREACHED
 
