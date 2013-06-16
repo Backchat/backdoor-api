@@ -56,6 +56,7 @@ CLUES_FREE = 9
 CLUES_DEFAULT = 21
 CLUES_MAX = 9
 
-CLUE_REASONS = ['fbshare', 'fblike', 'fbinvite', 'tweet', 'gppshare']
+#CLUE_REASONS = ['fbshare', 'fblike', 'fbinvite', 'tweet', 'gppshare']
+CLUE_REASONS = ['freeclues']
 
 DB_TIMESTAMP = '2013-06-14T21:05:51+00:00'
