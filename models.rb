@@ -113,8 +113,8 @@ class User < ActiveRecord::Base
     sender = User.find_by_fb_id(FACTORY_USER_UID)
     return if sender.nil?
 
-    gab = Gab.my_create(self, sender, 'Backdoor team', '')
-    gab.update_attributes(:related_user_name => 'Backdoor team')
+    gab = Gab.my_create(self, sender, 'Backdoor', '')
+    gab.update_attributes(:related_user_name => 'Backdoor')
     gab.create_message('Welcome to Backdoor!', MESSAGE_KIND_TEXT, false, random_key)
   end
 
