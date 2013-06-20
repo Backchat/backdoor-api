@@ -64,7 +64,7 @@ DB_TIMESTAMP = '2013-06-18T21:05:51+00:00'
 
 configure :production do
   Airbrake.configure do |config|
-    config.api_key = `ENV['AIRBRAKE_API_KEY']`
+    config.api_key = 'b759ebcaee4ac821de8eb104033079d7'
   end
   use Airbrake::Rack
   enable :raise_errors
