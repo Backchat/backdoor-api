@@ -261,7 +261,6 @@ class Gab < ActiveRecord::Base
 
     if !self.user.fake && self.user.registered
       msg_obj = msg.build_apn_hash
-      STDOUT.puts "MESSAGE HASH #{msg_obj}"
       Resque.enqueue(MessageDeliveryQueue, msg_obj) unless sent
     end
   end
@@ -553,7 +552,6 @@ class MessageDeliveryQueue
   end
 
   def self.perform(hash)
-    STDOUT.puts "MESSAGE HASH #{hash}"
     Message.deliver_apn_hash(MessageDeliveryQueue.build_pushers, hash)
   end
 end
