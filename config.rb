@@ -1,4 +1,5 @@
 require 'resque'
+require 'airbrake'
 
 CURRENT_VERSION = '1.0_beta5.6'
 
@@ -60,3 +61,11 @@ CLUES_MAX = 9
 CLUE_REASONS = ['freeclues']
 
 DB_TIMESTAMP = '2013-06-18T21:05:51+00:00'
+
+configure :production do
+  Airbrake.configure do |config|
+    config.api_key = `ENV['AIRBRAKE_API_KEY']`
+  end
+  use Airbrake::Rack
+  enable :raise_errors
+end
