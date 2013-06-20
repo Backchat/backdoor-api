@@ -1,5 +1,6 @@
 source 'https://rubygems.org'
 
+ruby '1.9.2'
 gem 'railties', '~> 3.2.12'
 gem 'rake'
 gem 'sinatra'
