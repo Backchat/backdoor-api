@@ -118,6 +118,7 @@ class User < ActiveRecord::Base
     gab.create_message('Welcome to Backdoor!', MESSAGE_KIND_TEXT, false, random_key)
   end
 
+  #unused right now
   def email_message(msg)
     ActiveRecord::Base.logger.info 'Delivering email to %s' % email
     Pony.mail(
@@ -131,6 +132,7 @@ class User < ActiveRecord::Base
     )
   end
 
+  #unused right now
   def sms_message(msg, phone_number)
     if msg.kind != MESSAGE_KIND_TEXT
       related_gab = msg.gab.related_gab
@@ -154,79 +156,8 @@ class User < ActiveRecord::Base
     end
   end
 
-  def push_message(msg)
-    pusher = Grocer.pusher(
-      certificate:  APN_CERT,
-      passphrase:   '',
-      gateway:      APN_GATEWAY
-    )
-    pusher2 = Grocer.pusher(
-      certificate:  APN_CERT_PROD,
-      passphrase:   '',
-      gateway:      APN_GATEWAY_PROD
-    )
-
-    sender = msg.gab.related_user_name
-    sender = 'Someone' if sender.blank?
-
-    user = msg.user
-    message_preview = !!user.settings["message_preview"]
-
-    if message_preview and msg.summary.length > 0
-      alert = "%s: %s" % [sender, msg.summary]
-    else
-      alert = "%s sent you a Backdoor message." % sender
-    end
-
-    if alert.length > 100
-      alert = alert[0..96] + "..."
-    end
-
-    devices.each do |device|
-      ActiveRecord::Base.logger.info 'Delivering apn to %s' % device.device_token
-      notification = Grocer::Notification.new(
-        device_token: device.device_token,
-        alert:        alert,
-        badge:        msg.user.unread_messages,
-        sound:        'default',
-        custom:       { :gab_id => msg.gab.id }
-      )
+  #-----------------------------------------------------------------------------
   
-      pusher.push(notification)
-      pusher2.push(notification)
-    end
-  end
-
-  def deliver_message(msg)
-    return if fake
-
-    if registered
-      push_message(msg)
-      return unless fb_id == FACTORY_USER_UID
-    end
-
-    # unless email.blank?
-    #   email_message(msg)
-    #   return unless fb_id == FACTORY_USER_UID
-    # end
-    # 
-    # unless phone.blank?
-    #   sms_message(msg, phone)
-    #   return unless fb_id == FACTORY_USER_UID
-    # end
-    # 
-    # unless msg.gab.related_phone.blank?
-    #   sms_message(msg, msg.gab.related_phone)
-    #   return unless fb_id == FACTORY_USER_UID
-    # end
-
-    # NOTREACHED
-
-    #elsif !uid.blank?
-    #  fetch_facebook_data
-    #  email_message(msg)
-  end
-
   before_save do |obj|
     obj.fb_data = {} if obj.fb_data.blank?
     obj.gpp_data = {} if obj.gpp_data.blank?
@@ -328,7 +259,11 @@ class Gab < ActiveRecord::Base
 
     self.save
 
-    Resque.enqueue(MessageDeliveryQueue, msg.id) unless sent
+    if !self.user.fake && self.user.registered
+      msg_obj = msg.build_apn_hash
+      STDOUT.puts "MESSAGE HASH #{msg_obj}"
+      Resque.enqueue(MessageDeliveryQueue, msg_obj) unless sent
+    end
   end
 
   def mark_read
@@ -395,8 +330,49 @@ class Message < ActiveRecord::Base
     return content
   end
 
-  def deliver
-    gab.user.deliver_message self
+  def build_apn_hash
+    sender = gab.related_user_name
+    sender = 'Someone' if sender.blank?
+
+    message_preview = !!user.settings["message_preview"]
+
+    if message_preview and self.summary.length > 0
+      alert = "%s: %s" % [sender, summary]
+    else
+      alert = "%s sent you a Backdoor message." % sender
+    end
+
+    if alert.length > 100
+      alert = alert[0..96] + "..."
+    end
+
+    {
+      :device_tokens => user.devices.map {|d| d.device_token},
+      :alert => alert,
+      :badge =>  user.unread_messages,
+      :custom => { 
+        :gab_id => gab.id
+      }
+    }
+  end
+
+  def self.deliver_apn_hash pushers, hash
+    hash = hash.symbolize_keys
+    hash[:device_tokens].each do |device_token|
+      ActiveRecord::Base.logger.info 'Delivering apn to %s' % device_token
+      notification = 
+        Grocer::Notification.new(
+                                 device_token: device_token,
+                                 alert:        hash[:alert],
+                                 badge:        hash[:unread_messages],
+                                 sound:        'default',
+                                 custom:       hash[:custom]
+                                 )
+      
+      pushers.each do |push|
+        push.push(notification)
+      end
+    end
   end
 end
 
@@ -560,9 +536,21 @@ end
 class MessageDeliveryQueue
   @queue = :message_delivery
 
-  def self.perform(id)
-    msg = Message.find_by_id(id)
-    msg.deliver unless msg.nil?
+  def self.perform(hash)
+    pushers = []
+    pushers << Grocer.pusher(
+      certificate:  APN_CERT,
+      passphrase:   '',
+      gateway:      APN_GATEWAY
+    )
+    pushers << Grocer.pusher(
+      certificate:  APN_CERT_PROD,
+      passphrase:   '',
+      gateway:      APN_GATEWAY_PROD
+    )
+
+    STDOUT.puts "MESSAGE HASH #{hash}"
+    Message.deliver_apn_hash(pushers, hash)
   end
 end
 
