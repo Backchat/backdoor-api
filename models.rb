@@ -536,7 +536,7 @@ end
 class MessageDeliveryQueue
   @queue = :message_delivery
 
-  def self.perform(hash)
+  def self.build_pushers
     pushers = []
     pushers << Grocer.pusher(
       certificate:  APN_CERT,
@@ -549,8 +549,12 @@ class MessageDeliveryQueue
       gateway:      APN_GATEWAY_PROD
     )
 
+    pushers
+  end
+
+  def self.perform(hash)
     STDOUT.puts "MESSAGE HASH #{hash}"
-    Message.deliver_apn_hash(pushers, hash)
+    Message.deliver_apn_hash(MessageDeliveryQueue.build_pushers, hash)
   end
 end
 
