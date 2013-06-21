@@ -156,8 +156,6 @@ class User < ActiveRecord::Base
     end
   end
 
-  #-----------------------------------------------------------------------------
-  
   before_save do |obj|
     obj.fb_data = {} if obj.fb_data.blank?
     obj.gpp_data = {} if obj.gpp_data.blank?
@@ -561,8 +559,8 @@ class DeviceCleanupQueue
 
   def self.perform
     feedback = Grocer.feedback(
-      certificate:  APN_CERT_PROD,
-      gateway:      APN_GATEWAY_PROD,
+      certificate:  APN_CERT,
+      gateway:      APN_GATEWAY,
       passphrase:   '',
       port:         2196,
       retries:      3
