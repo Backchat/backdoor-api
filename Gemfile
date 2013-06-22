@@ -1,5 +1,7 @@
 source 'https://rubygems.org'
 
+ruby '1.9.3'
+gem 'railties', '~> 3.2.12'
 gem 'rake'
 gem 'sinatra'
 gem "activerecord", "~> 3.2.12"
@@ -26,3 +28,5 @@ group :development do
   gem 'rb-inotify', '~> 0.9.0'
   gem 'blitz'
 end
+
+gem 'airbrake'

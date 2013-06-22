@@ -1,9 +1,13 @@
 require 'resque'
+require 'airbrake'
 
 CURRENT_VERSION = '1.0_beta5.6'
 
 BASE_URL = ENV['BACKDOOR_BASE_URL'] if ENV['BACKDOOR_BASE_URL']
 BASE_URL = 'https://capricalabs.com:7564/' unless ENV['BACKDOOR_BASE_URL']
+
+BACKDOOR_ENV = ENV['BACKDOOR_ENV'] if ENV['BACKDOOR_ENV']
+BACKDOOR_ENV = 'debug' unless ENV['BACKDOOR_ENV']
 
 ENV['DATABASE_URL'] = ENV['HEROKU_POSTGRESQL_JADE_URL']  unless ENV['DATABASE_URL']
 ENV['DATABASE_URL'] = 'postgres://localhost/youtell-api' unless ENV['DATABASE_URL']
@@ -28,10 +32,21 @@ SMTP_SETTINGS = {
 TWILIO_SID = 'AC3a0890f50305fd4b1eccbc2251025ae8'
 TWILIO_TOKEN = '16efa8aa2178da2252a43ada84eea196'
 
-APN_CERT = File.dirname(__FILE__) + '/misc/cl_dev.pem'
-APN_GATEWAY = 'gateway.sandbox.push.apple.com'
-APN_CERT_PROD = File.dirname(__FILE__) + '/misc/cl_prod.pem'
-APN_GATEWAY_PROD = 'gateway.push.apple.com'
+#APN_CERT = File.dirname(__FILE__) + '/misc/cl_dev.pem'
+#APN_GATEWAY = 'gateway.sandbox.push.apple.com'
+#APN_CERT_PROD = File.dirname(__FILE__) + '/misc/cl_prod.pem'
+#APN_GATEWAY_PROD = 'gateway.push.apple.com'
+
+if BACKDOOR_ENV == 'debug'
+  APN_CERT = File.dirname(__FILE__) + '/misc/backdoor_dev.pem'
+  APN_GATEWAY = 'gateway.sandbox.push.apple.com'
+elsif BACKDOOR_ENV == 'stage'
+  APN_CERT = File.dirname(__FILE__) + '/misc/backdoor_stage.pem'
+  APN_GATEWAY= 'gateway.push.apple.com'
+elsif BACKDOOR_ENV == 'release'
+  APN_CERT = File.dirname(__FILE__) + '/misc/cl_prod.pem'
+  APN_GATEWAY = 'gateway.push.apple.com'
+end
 
 BLITZ_TOKEN = '36a9c080ff6fdce0e32c66c3eb3edd9e'
 
@@ -59,4 +74,12 @@ CLUES_MAX = 9
 CLUE_REASONS = ['fbshare', 'fblike', 'fbinvite', 'tweet', 'gppshare']
 #CLUE_REASONS = ['freeclues']
 
-DB_TIMESTAMP = '2013-06-19T21:05:51+00:00'
+DB_TIMESTAMP = '2013-06-18T21:05:51+00:00'
+
+configure :production do
+  Airbrake.configure do |config|
+    config.api_key = 'b759ebcaee4ac821de8eb104033079d7'
+  end
+  use Airbrake::Rack
+  enable :raise_errors
+end

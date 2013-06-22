@@ -174,7 +174,11 @@ end
 post '/free-clues' do
   reason = params[:reason]
 
-  err 400, 'unknown reason' unless reason == 'debug' or  CLUE_REASONS.include?(reason)
+  #err 400, 'unknown reason' unless reason == 'debug' or  CLUE_REASONS.include?(reason)
+
+  if reason != 'debug'
+    reason = 'freeclues'
+  end
 
   if reason != 'debug'
     reason = 'freeclues'
