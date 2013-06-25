@@ -138,7 +138,7 @@ post '/buy-clues' do
   receipt = params[:receipt]
 
   data = { 'receipt-data' => receipt }.to_json
-  url = 'https://sandbox.itunes.apple.com/verifyReceipt'
+  url = RECEIPT_VERIFY_URL
   client = HTTPClient.new
   resp = client.post(url, data)
   data = JSON.parse(resp.content)
