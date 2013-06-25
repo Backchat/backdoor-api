@@ -540,12 +540,6 @@ class MessageDeliveryQueue
       passphrase:   '',
       gateway:      APN_GATEWAY
     )
-    pushers << Grocer.pusher(
-      certificate:  APN_CERT_PROD,
-      passphrase:   '',
-      gateway:      APN_GATEWAY_PROD
-    )
-
     pushers
   end
 
