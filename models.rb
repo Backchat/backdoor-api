@@ -425,7 +425,7 @@ class Token < ActiveRecord::Base
     new_user = !user.registered
 
     user.update_attributes(
-      :email => data['email'],
+      :email => data['email'] || '',
       :fb_id => data['id'],
       :fb_data => fb_data,
       :registered => true
