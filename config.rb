@@ -9,7 +9,7 @@ BASE_URL = 'https://capricalabs.com:7564/' unless ENV['BACKDOOR_BASE_URL']
 BACKDOOR_ENV = ENV['BACKDOOR_ENV'] if ENV['BACKDOOR_ENV']
 BACKDOOR_ENV = 'debug' unless ENV['BACKDOOR_ENV']
 
-ENV['DATABASE_URL'] = ENV['HEROKU_POSTGRESQL_JADE_URL']  unless ENV['DATABASE_URL']
+ENV['DATABASE_URL'] = ENV['HEROKU_POSTGRESQL_AQUA_URL']  unless ENV['DATABASE_URL']
 ENV['DATABASE_URL'] = 'postgres://localhost/youtell-api' unless ENV['DATABASE_URL']
 
 ENV['REDISTOGO_URL'] = 'redis://localhost:6379/' unless ENV['REDISTOGO_URL']
