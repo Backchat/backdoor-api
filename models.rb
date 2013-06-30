@@ -361,7 +361,7 @@ class Message < ActiveRecord::Base
         Grocer::Notification.new(
                                  device_token: device_token,
                                  alert:        hash[:alert],
-                                 badge:        hash[:unread_messages],
+                                 badge:        hash[:badge],
                                  sound:        'default',
                                  custom:       hash[:custom]
                                  )
