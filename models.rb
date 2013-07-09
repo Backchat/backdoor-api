@@ -22,6 +22,10 @@ class User < ActiveRecord::Base
   serialize :gpp_data
   serialize :settings
 
+  def self.find_by_params(param_obj) 
+    return User.find_by_id(param_obj[:id])
+  end
+
   def self.my_find_or_create(fb_id, gpp_id, email, phone, fake = false)
     user = User.find_or_create_by_fb_id(fb_id) unless fb_id.blank?
     user = User.find_or_create_by_gpp_id(gpp_id) unless gpp_id.blank?
@@ -171,6 +175,11 @@ class Gab < ActiveRecord::Base
 
   cattr_accessor :current_user
 
+  def as_json opts={}
+    super(:except => [:user_id, :updated_at, :created_at, :related_gab_id])
+  end
+   
+  #sender, receiver!!!
   def self.my_create(user, receiver, related_user_name, related_phone)
     gab = Gab.create(
       :user_id => user.id,
@@ -261,6 +270,23 @@ class Gab < ActiveRecord::Base
       msg_obj = msg.build_apn_hash
       Resque.enqueue(MessageDeliveryQueue, msg_obj) unless sent
     end
+
+    msg
+  end
+
+  def create_message_from_params(params) 
+    content = params[:content]
+    kind = params[:kind].try(:to_i)
+    key = params[:key] || ''
+  
+    return nil if content.blank? || kind.blank?
+
+    message = self.create_message(content, kind, true, key) 
+    self.related_gab.create_message(content, kind, false, key)
+
+    self.mark_read #TODO stop doing this
+
+    message
   end
 
   def mark_read
@@ -270,6 +296,7 @@ class Gab < ActiveRecord::Base
   end
 
   def mark_deleted
+    #TODO mark the actual gab as deleted as well
     messages.update_all(:deleted => true, :updated_at => Time.now)
     self.total_count = 0
     self.unread_count = 0
@@ -299,6 +326,11 @@ end
 class Message < ActiveRecord::Base
   belongs_to :user
   belongs_to :gab
+  scope :visible, -> {where(deleted: false)}
+
+  def as_json(opt={})
+    super(:except => [:updated_at])
+  end
 
   def self.dump_updated(user, time)
     fields = [:id, :gab_id, :content, :kind, :sent, :deleted, :secret, :key, date_sql(:created_at)]

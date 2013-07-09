@@ -54,6 +54,7 @@ GEM
     i18n (0.6.1)
     journey (1.0.4)
     json (1.5.5)
+    json_expressions (0.8.2)
     json_pure (1.5.5)
       spruz (~> 0.2.8)
     jwt (0.1.8)
@@ -62,6 +63,7 @@ GEM
       rb-fsevent (>= 0.9.3)
       rb-inotify (>= 0.9)
       rb-kqueue (>= 0.2)
+    machinist (2.0)
     mail (2.5.4)
       mime-types (~> 1.16)
       treetop (~> 1.4.8)
@@ -117,6 +119,9 @@ GEM
       redis (>= 2.0.1)
       resque (>= 1.20.0)
       rufus-scheduler
+    resque_spec (0.13.0)
+      resque (>= 1.19.0)
+      rspec (>= 2.5.0)
     rest-client (1.6.7)
       mime-types (>= 1.16)
     rspec (2.13.0)
@@ -172,6 +177,8 @@ DEPENDENCIES
   bzip2-ruby
   grocer
   httpclient
+  json_expressions
+  machinist
   mini_magick
   newrelic_rpm
   phony
@@ -183,6 +190,7 @@ DEPENDENCIES
   rerun
   resque
   resque-scheduler
+  resque_spec
   sinatra
   sinatra-activerecord
   thin

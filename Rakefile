@@ -3,7 +3,6 @@ require 'resque/tasks'
 require 'resque_scheduler/tasks'
 require 'sinatra/activerecord/rake'
 
-
 namespace :resque do
   task :setup do
     require 'resque'
@@ -29,4 +28,11 @@ namespace :db do
       :fb_data => {}
     })
   end
+end
+
+require 'rake/testtask'
+Rake::TestTask.new do |test|
+  test.warning = false
+  test.libs = ["tests"]
+  test.test_files = FileList['tests/*_test.rb']
 end
