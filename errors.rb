@@ -27,8 +27,9 @@ def err(code, msg)
   raise ApiError, [code, msg]
 end
 
-def ok(resp = {})
-  raise ApiSuccess, resp
+def ok(res = {})
+  return resp(true, res)
+  #raise ApiSuccess, res
 end
 
 def resp(ok, data)
