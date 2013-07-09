@@ -65,6 +65,7 @@ helpers do
       :available_clues => avail_clues,
       :unread_messages => unread_messages,
       :settings => settings,
+      :provider => provider,
       :new_user => @new_user,
     }
   end
