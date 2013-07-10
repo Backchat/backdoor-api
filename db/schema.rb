@@ -56,9 +56,14 @@ ActiveRecord::Schema.define(:version => 20130709104836) do
     t.integer  "friend_id"
     t.string   "social_id",  :default => "", :null => false
     t.string   "provider",   :default => "", :null => false
+    t.string   "name",       :default => "", :null => false
+    t.string   "first_name", :default => "", :null => false
+    t.string   "last_name",  :default => "", :null => false
     t.datetime "created_at",                 :null => false
     t.datetime "updated_at",                 :null => false
   end
+
+  add_index "friendships", ["user_id"], :name => "index_friendships_on_user_id"
 
   create_table "gabs", :force => true do |t|
     t.integer  "user_id",           :default => 0,                     :null => false
