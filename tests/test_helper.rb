@@ -64,7 +64,7 @@ class BackdoorTestCase < MiniTest::Unit::TestCase
     
     define_method "auth_#{method}_ok" do |user, url, params={}|
       self.send "auth_#{method}", user, url, params
-      assert last_response.ok?, "authenticated #{method} request failed"
+      assert last_response.ok?, "authenticated #{method} request failed with body #{last_response.body}"
     end
   end
 

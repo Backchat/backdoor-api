@@ -4,20 +4,20 @@ require 'test_helper.rb'
 class GabTest < BackdoorTestCase
   self.i_suck_and_my_tests_are_order_dependent! #TODO, just related around post
 
-  def johns_first_gab
+  def generate_gab_json gab, opt
     {
       gab: {
-        clue_count: 0,
-        id: @john.gabs.first.id,
-        related_avatar: @mary.avatar_url,
-        related_phone: '',
-        related_user_name: '',
+        clue_count: gab.clue_count,
+        id: gab.id,
+        related_avatar: opt[:related_avatar]||gab.related_avatar,
+        related_phone: opt[:related_phone]||gab.related_phone,
+        related_user_name: opt[:related_user_name]||gab.related_user_name,
         last_date: wildcard_matcher,
         sent: true,
-        total_count: 1,
-        unread_count: 0,
-        content_cache: @john.gabs.first.content_cache,
-        content_summary: @john.gabs.first.content_summary
+        total_count: opt[:total_count]||gab.total_count,
+        unread_count: opt[:unread_count]||gab.unread_count,
+        content_cache: gab.content_cache,
+        content_summary: gab.content_summary
       }
     }
   end
@@ -58,7 +58,7 @@ class GabTest < BackdoorTestCase
     gabs = {
       gabs:
       [
-       johns_first_gab
+       generate_gab_json(@john.gabs.first, {})[:gab]
       ].ordered!
     }
     assert_json_match response_ok(gabs), last_response.body
@@ -66,12 +66,30 @@ class GabTest < BackdoorTestCase
 
   def test_get_a_gab
     auth_get_ok @john, "/gabs/#{@john.gabs.first.id}"
-    assert_json_match response_ok(johns_first_gab), last_response.body
+    assert_json_match response_ok(generate_gab_json(@john.gabs.first,{})), last_response.body
   end
 
   def test_post_a_gab
-    auth_post @john, "/gabs/#{@john.gabs.first.id}"
-    assert !last_response.ok?
+    params = {
+      receiver: {
+        id: @mary.id
+      },
+      message: {
+        content: "A new gab for a new day",
+        kind: 0
+      }
+    }
+    auth_post_ok @john, "/gabs", params
+    new_gab = @john.gabs.last
+    opt = {
+      related_avatar: @mary.avatar_url,
+      related_phone: '',
+      related_user_name: '',
+      total_count: 1,
+      unread_count: 0,
+      sent: true
+    }
+    assert_json_match response_ok(generate_gab_json(new_gab, opt)), last_response.body
   end
 
   def test_delete_a_gab
@@ -83,7 +101,7 @@ class GabTest < BackdoorTestCase
 
   def test_get_an_extended_gab
     auth_get_ok @john, "/gabs/#{@john.gabs.first.id}", {extended: true}
-    extended = johns_first_gab.clone
+    extended = generate_gab_json @john.gabs.first, {}
     extended[:gab][:messages] = johns_first_messages()
     assert_json_match response_ok(extended), last_response.body
   end

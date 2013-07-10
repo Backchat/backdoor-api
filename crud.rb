@@ -7,7 +7,7 @@ def invalid_request
 end
 
 get '/gabs' do
-  ok :gabs => @user.gabs
+  ok :gabs => @user.gabs.all.map{|g| g.as_json()["gab"]}
 end
 
 post '/gabs' do
@@ -23,7 +23,7 @@ post '/gabs' do
   gab = Gab.my_create(@user, r_user, r_user.email, r_user.phone) #TODO fix my_create 
   message = gab.create_message_from_params(message_params)  
   
-  ok :gab => gab
+  ok gab
 end
 
 ['/gabs/:gab_id', '/gabs/:gab_id/*'].each do |path|
