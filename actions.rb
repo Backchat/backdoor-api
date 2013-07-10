@@ -7,7 +7,7 @@ before do
   gpp_data = JSON.parse(params[:gpp_data]) unless params[:gpp_data].blank?
   blitz_token = params[:blitz_token]
 
-  return if request.path == '/admin' or request.path == '/images' or request.path == '/ping'
+  return if request.path == '/admin' or request.path == '/images' or request.path == '/ping' or request.path == '/fb-update'
 
   err 400, 'invalid request' if access_token.nil?
 
@@ -254,6 +254,33 @@ post '/update-settings' do
   @user.save
 
   ok :sync_data => sync_data
+end
+
+get '/fb-update' do
+  mode = params['hub.mode']
+  ch = params['hub.challenge']
+  token = params['hub.verify_token']
+
+  err 400, 'invalid request' if mode != 'subscribe'
+  err 400, 'invalid request' if token != 'caplabs'
+
+  return ch
+end
+
+post '/fb-update' do
+  request.body.rewind
+  data = JSON.load(request.body.read)
+  data['entry'].each do |entry|
+    uid = entry['uid']
+    user = User.where(:fb_id => uid)[0]
+    next if user.nil?
+    user.fetch_fb_friends
+  end
+  ok {}
+end
+
+post '/get-friends' do
+  ok :friends => @user.get_friends
 end
 
 get '/ping' do

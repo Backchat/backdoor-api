@@ -17,6 +17,8 @@ class User < ActiveRecord::Base
   has_many :clues, :dependent => :destroy
   has_many :gabs, :dependent => :destroy
   has_many :messages, :dependent => :destroy
+  has_many :friendships, :dependent => :destroy
+  has_many :incoming_friendships, :class_name => 'Friendship', :dependent => :destroy, :foreign_key => 'friend_id'
 
   serialize :fb_data
   serialize :gpp_data
@@ -156,11 +158,58 @@ class User < ActiveRecord::Base
     end
   end
 
+  def fetch_fb_friends
+    client = HTTPClient.new
+
+    url = 'https://graph.facebook.com/oauth/access_token'
+    resp = client.get(url, :client_id => FACEBOOK_APP_ID, :client_secret => FACEBOOK_APP_SECRET, :grant_type => 'client_credentials')
+    token = resp.content.sub('access_token=', '')
+
+    url = 'https://graph.facebook.com/%s/friends?fields=id,first_name,last_name,name' % self.fb_id
+    resp = client.get(url, :access_token => token)
+    data = JSON.parse(resp.content)
+
+    social_ids = []
+
+    data['data'].each do |item|
+      friend = User.where(:fb_id => item['id'])[0]
+      social_ids << item['id']
+      next if friend.nil?
+      friendship = Friendship.find_or_create_by_user_id_and_friend_id_and_provider_and_social_id(self.id, friend.id, 'facebook', item['id'])
+      friendship.update_attributes(:name => item['name'], :first_name => item['first_name'], :last_name => item['last_name'])
+    end
+
+    Friendship.where(:provider => 'facebook', :user_id => self.id).where('social_id NOT IN (?)', social_ids).destroy_all
+  end
+
+  def fetch_friends
+    self.fetch_fb_friends unless self.fb_id.blank?
+  end
+
+  def get_friends
+    if self.friendships.count == 0
+      self.fetch_friends
+    end
+
+    sql = Friendship
+      .select([:provider, :social_id, :first_name, :last_name, :name])
+      .where('user_id = ?', self.id)
+      .to_sql
+
+    data = ActiveRecord::Base.connection.select_all(sql)
+
+    data
+  end
+
   before_save do |obj|
     obj.fb_data = {} if obj.fb_data.blank?
     obj.gpp_data = {} if obj.gpp_data.blank?
     obj.settings = USER_DEFAULT_SETTINGS if obj.settings.blank?
   end
+end
+
+class Friendship < ActiveRecord::Base
+  belongs_to :user
 end
 
 class Gab < ActiveRecord::Base
