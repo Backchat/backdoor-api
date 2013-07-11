@@ -18,9 +18,7 @@ class GabTest < BackdoorTestCase
     auth_get_ok @john, '/gabs'
     gabs = {
       gabs:
-      [
-       generate_gab_json(@john.gabs.first, {})[:gab]
-      ].ordered!
+      @john.gabs.all.map {|g| generate_gab_json(g, {})[:gab]}.ordered!
     }
     assert_json_match response_ok(gabs), last_response.body
   end

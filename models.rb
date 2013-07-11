@@ -22,6 +22,9 @@ class User < ActiveRecord::Base
   serialize :gpp_data
   serialize :settings
 
+  after_create :add_default_purchases
+  after_create :send_welcome_message
+
   def self.find_by_params(param_obj) 
     return User.find_by_id(param_obj[:id])
   end
@@ -111,14 +114,15 @@ class User < ActiveRecord::Base
   #  )
   #end
 
-  def create_welcome_message
+  def add_default_purchases
     self.purchases.create(:clues => CLUES_DEFAULT)
+  end
 
+  def send_welcome_message
     sender = User.find_by_fb_id(FACTORY_USER_UID)
     return if sender.nil?
 
     gab = Gab.my_create(self, sender, 'Backdoor', '')
-    gab.update_attributes(:related_user_name => 'Backdoor')
     gab.create_message('Welcome to Backdoor!', MESSAGE_KIND_TEXT, false, random_key)
   end
 

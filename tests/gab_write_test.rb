@@ -121,7 +121,7 @@ class GabWriteTest  < BackdoorTestCase
   end
 
   def test_request_a_clue
-    j_gab = @john.gabs.last #we know this one is the first gab created. a bit brittle
+    j_gab = @john.gabs.where("related_user_name != 'backdoor'").first
     m_gab = j_gab.related_gab #only the related gab has clues
     clue = m_gab.clues.order("RANDOM()").first
     old_available = @mary.available_clues

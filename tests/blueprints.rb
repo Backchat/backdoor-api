@@ -13,12 +13,14 @@ Token.blueprint do
 end
 
 def mock_users
-  #TODO fix this mock for fb info. bit brittle
+  #Mock factory user
+  User.make!(phone: "", fb_id: FACTORY_USER_UID)
+
+  #TODO fix this mock for fb info. bit brittle  
   fb_data = {
     'likes' => [{'id' => 1, 'name' => "John"}, {'id' => 2, 'name' => "Fred"} ],
   }
   u = [User.make!(phone: "1234567890", fb_id: "1", fb_data: fb_data), User.make!(phone: "2345678901", fb_id: "2")]
-  u[1].purchases.create(:clues => CLUES_DEFAULT)
 
   #TODO perhaps its best not to do it this way
   g = Gab.my_create(u[0], u[1], "", u[1].phone)
