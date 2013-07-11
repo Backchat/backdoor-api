@@ -93,7 +93,7 @@ get '/friends' do
     @user.fetch_friends
   end
 
-  ok @user.friendships
+  ok :friends => @user.friendships.map{|f| f.as_json["friendship"]}
 end
 
 # users in actions

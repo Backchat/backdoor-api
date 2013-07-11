@@ -218,6 +218,10 @@ class Friendship < ActiveRecord::Base
   FACEBOOK_PROVIDER = "facebook"
 
   scope :facebook, -> {where(provider: FACEBOOK_PROVIDER)}
+
+  def as_json(opt={})
+    super(:only => [:id, :user_id, :friend_id, :social_id, :provider])
+  end
 end
 
 class Gab < ActiveRecord::Base

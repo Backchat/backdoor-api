@@ -35,6 +35,20 @@ class FriendTest < BackdoorTestCase
     assert f.last_name == "Wayne", "did not get last name"
   end
 
+  def test_get_friends_api
+    stub_fb_friends_with(fb_friends)
+    @mary.fetch_fb_friends
+
+    auth_get_ok @mary, "/friends"
+    friends = {friends:
+      [{id: wildcard_matcher,
+         user_id: @mary.id,
+         friend_id: @john.id,
+         social_id: @john.fb_id,
+         provider: "facebook"}].ordered!
+    }
+    assert_json_match response_ok(friends), last_response.body
+  end
   def test_getting_fb_friends_drop
     stub_fb_friends_with(fb_friends)
     @mary.fetch_fb_friends
@@ -52,5 +66,9 @@ class FriendTest < BackdoorTestCase
     stub_fb_friends_with(new_fb)
     @mary.fetch_fb_friends
     assert @mary.friendships.count == 2, "did add a new friend"
+  end
+
+  def test_fb_update
+    skip "test this later"
   end
 end
