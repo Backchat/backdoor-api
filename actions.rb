@@ -173,18 +173,13 @@ end
 
 post '/fb-update' do
   request.body.rewind
-  data = JSON.load(request.body.read)
+  data = JSON.parse(request.body.read)
   data['entry'].each do |entry|
     uid = entry['uid']
-    user = User.where(:fb_id => uid)[0]
-    next if user.nil?
-    user.fetch_fb_friends
+    user = User.find_by_fb_id(uid)
+    user.fetch_fb_friends unless user.nil?
   end
   ok {}
-end
-
-post '/get-friends' do
-  ok :friends => @user.get_friends
 end
 
 get '/ping' do

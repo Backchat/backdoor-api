@@ -87,6 +87,15 @@ delete '/gabs/:gab_id/messages/:message_id' do
   return invalid_request #TODO we do not support deleting a message
 end
 
+get '/friends' do
+  #TODO make this happen when you sign up...
+  if @user.friendships.count == 0
+    @user.fetch_friends
+  end
+
+  ok @user.friendships
+end
+
 # users in actions
 # featured-users 
 # buy-clues 

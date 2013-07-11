@@ -2,7 +2,6 @@ require 'test_helper.rb'
 
 class GabWriteTest  < BackdoorTestCase
   #write tests
-  #self.i_suck_and_my_tests_are_order_dependent
 
   def test_tagging_a_gab
     a_gab = @mary.gabs.order("random()").first
