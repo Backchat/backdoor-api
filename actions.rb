@@ -34,105 +34,11 @@ before do
   end
 
   device = Device.my_find_or_create(device_token, @user)
-  Gab.current_user = @user
-end
-
-post '/sync' do
-  gab_id = params[:gab_id]
-  unless gab_id.nil?
-    gab = @user.gabs.find_by_id(gab_id)
-    gab.mark_read unless gab.nil?
-  end
-
-  ok :sync_data => sync_data
-end
-
-
-post '/create-message' do
-  content = params[:content]
-  kind = params[:kind]
-  key = params[:key] || ''
-
-  err 400, 'invalid request' if content.blank? or kind.blank?
- 
-  gab_id = params[:gab_id]
-  kind = kind.to_i
-
-  unless gab_id.nil?
-    gab = Gab.find(gab_id)
-  else
-    receiver_fb_id = params[:receiver_fb_id]
-    receiver_gpp_id = params[:receiver_gpp_id]
-    receiver_email = params[:receiver_email]
-    receiver_phone = params[:receiver_phone]
-    related_user_name = params[:related_user_name]
-    related_phone = params[:related_phone]
-    receiver = User.my_find_or_create(receiver_fb_id, receiver_gpp_id, receiver_email, receiver_phone, @blitz_mode)
-    err 404, 'user not found' unless receiver
-
-    gab = Gab.my_create(@user, receiver, related_user_name, related_phone)
-  end
-
-  gab.create_message(content, kind, true, key)
-  gab.related_gab.create_message(content, kind, false, key)
-
-  gab.mark_read
-
-  ok :gab_id => gab.id, :sync_data => sync_data
 end
 
 post '/featured-users' do
   ok :users => User.dump_featured(@user)
 end
-
-post '/request-clue' do
-  number = params[:number]
-  gab_id = params[:gab_id]
-
-  err 400, 'invalid request' if number.blank? or gab_id.blank?
-
-  gab = Gab
-    .where('user_id = ?', @user)
-    .find(params[:gab_id])
-
-  clues = gab.clues.where(:number => number.to_i)
-
-  err 400, 'invalid request' if clues.count == 0
-
-  clue = clues[0].reveal
-  success = !clue.nil?
-
-  ok :success => success, :sync_data => sync_data
-end
-
-post '/check-uid' do
-  uid = params[:uid]
-  user = User.find_by_fb_id(uid)
-  user = User.find_by_gpp_id(uid) if user.nil?
-  exists = (!user.nil?) && user.registered #&& user.uid != FACTORY_USER_UID
-  ok :uid_exists => (exists ? 'yes' : 'no')
-end
-
-post '/clear-gab' do
-  gab = Gab
-    .where('user_id = ?', @user)
-    .includes(:messages)
-    .find(params[:id])
-  gab.mark_deleted
-  ok :sync_data => sync_data
-end
-
-post '/tag-gab' do
-  gab = Gab
-    .where('user_id = ?', @user)
-    .find(params[:id])
-
-  gab.related_user_name = params[:tag]
-  gab.save
-
-  ok :sync_data => sync_data
-end
-
 
 post '/buy-clues' do
   receipt = params[:receipt]
@@ -168,13 +74,11 @@ post '/buy-clues' do
     :clues => product
   )
 
-  ok :sync_data => sync_data
+  ok #TODO what to send back?
 end
 
 post '/free-clues' do
   reason = params[:reason]
-
-  #err 400, 'unknown reason' unless reason == 'debug' or  CLUE_REASONS.include?(reason)
 
   if reason != 'debug'
     reason = 'freeclues'
@@ -198,7 +102,7 @@ post '/free-clues' do
     pur.save
   end
 
-  ok :count => count, :sync_data => sync_data
+  ok :count => count
 end
 
 post '/feedbacks' do
@@ -253,11 +157,11 @@ post '/update-settings' do
   @user.settings[key] = value["value"]
   @user.save
 
-  ok :sync_data => sync_data
+  ok
 end
 
 get '/ping' do
-  ok :base_url => BASE_URL, :database_url => ENV['DATABASE_URL']
+  ok :base_url => BASE_URL
 end
 
 get '/admin' do

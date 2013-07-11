@@ -177,8 +177,6 @@ class Gab < ActiveRecord::Base
   has_many :clues
   belongs_to :user
 
-  cattr_accessor :current_user
-
   def as_json opts={}
     super(except: [:user_id, :created_at, :related_gab_id])
   end
@@ -205,23 +203,6 @@ class Gab < ActiveRecord::Base
     gab_recv.create_clues
 
     gab
-  end
-
-  def self.dump_updated(user, time, messages)
-    fields = [:id, :related_user_name, :related_avatar, :content_cache, :content_summary, :unread_count, :total_count, :clue_count, :sent, date_sql(:updated_at)]
-
-    gab_ids = messages.map { |x| x['gab_id'] }
-    gab_ids << -1
-
-    sql = Gab
-      .select(fields)
-      .where('id in (?) OR (user_id = ? AND updated_at > ?)', gab_ids, user, time)
-      .order('updated_at DESC')
-      .to_sql
-
-    gabs = ActiveRecord::Base.connection.select_all(sql)
-
-    gabs
   end
 
   def create_message(content, kind, sent, key)
@@ -332,26 +313,6 @@ class Message < ActiveRecord::Base
     super(:except => [:updated_at])
   end
 
-  def self.dump_updated(user, time)
-    fields = [:id, :gab_id, :content, :kind, :sent, :deleted, :secret, :key, date_sql(:created_at)]
-
-    sql = Message
-      .select(fields)
-      .where('user_id = ?', user)
-      .where('updated_at > ?', time)
-      .order('created_at DESC')
-      .limit(200)
-      .to_sql
-
-    values = ActiveRecord::Base.connection.select_all(sql)
-
-    values.each do |val|
-      val['content'] = '' if val['deleted'] == 't'
-    end
-
-    values
-  end
-
   def summary
     return '' unless kind == MESSAGE_KIND_TEXT
     return '' if content == 'ERROR_SMS_DELIVERY'
@@ -411,22 +372,6 @@ class Clue < ActiveRecord::Base
 
   def as_json(opt={})
     super(only: [:id, :gab_id, :field, :value, :number])
-  end
-
-  def self.dump_updated(user, time)
-    fields = [:id, :gab_id, :field, :value, :number]
-
-    sql = Clue
-      .select(fields)
-      .where('user_id = ?', user)
-      .where('updated_at > ?', time)
-      .where(:revealed => true)
-      .order('created_at DESC')
-      .to_sql
-
-    clues = ActiveRecord::Base.connection.select_all(sql)
-
-    clues
   end
 
   def reveal
