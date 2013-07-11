@@ -15,8 +15,8 @@ class User < ActiveRecord::Base
   has_many :devices, :dependent => :destroy
   has_many :purchases, :dependent => :destroy
   has_many :clues, :dependent => :destroy
-  has_many :gabs, :dependent => :destroy
-  has_many :messages, :dependent => :destroy
+  has_many :gabs, :dependent => :destroy, :order => "updated_at DESC"
+  has_many :messages, :dependent => :destroy, :order => "created_at DESC"
 
   serialize :fb_data
   serialize :gpp_data
@@ -169,14 +169,14 @@ end
 
 class Gab < ActiveRecord::Base
   has_one :related_gab, :class_name => 'Gab', :foreign_key => 'related_gab_id'
-  has_many :messages, :dependent => :destroy
+  has_many :messages, :dependent => :destroy, :order => "created_at DESC"
   has_many :clues
   belongs_to :user
 
   cattr_accessor :current_user
 
   def as_json opts={}
-    super(:except => [:user_id, :updated_at, :created_at, :related_gab_id])
+    super(except: [:user_id, :created_at, :related_gab_id])
   end
    
   #sender, receiver!!!
@@ -186,7 +186,6 @@ class Gab < ActiveRecord::Base
       :related_user_name => related_user_name || '',
       :related_avatar => receiver.avatar_url,
       :sent => true,
-      :last_date => Time.now
     )
 
     gab_recv = Gab.create(
@@ -196,7 +195,6 @@ class Gab < ActiveRecord::Base
       :related_avatar => '',
       :related_phone => related_phone || '',
       :sent => false,
-      :last_date => Time.now
     )
 
     gab.update_attributes(:related_gab_id => gab_recv.id)
@@ -206,7 +204,7 @@ class Gab < ActiveRecord::Base
   end
 
   def self.dump_updated(user, time, messages)
-    fields = [:id, :related_user_name, :related_avatar, :content_cache, :content_summary, :unread_count, :total_count, :clue_count, :sent, date_sql(:last_date)]
+    fields = [:id, :related_user_name, :related_avatar, :content_cache, :content_summary, :unread_count, :total_count, :clue_count, :sent, date_sql(:updated_at)]
 
     gab_ids = messages.map { |x| x['gab_id'] }
     gab_ids << -1
@@ -214,7 +212,7 @@ class Gab < ActiveRecord::Base
     sql = Gab
       .select(fields)
       .where('id in (?) OR (user_id = ? AND updated_at > ?)', gab_ids, user, time)
-      .order('last_date DESC')
+      .order('updated_at DESC')
       .to_sql
 
     gabs = ActiveRecord::Base.connection.select_all(sql)
@@ -256,7 +254,6 @@ class Gab < ActiveRecord::Base
 
     self.total_count += 1
     self.unread_count += 1 unless sent
-    self.last_date = msg.updated_at
 
     summary = msg.summary
     unless summary.nil? or summary.empty?
@@ -291,13 +288,14 @@ class Gab < ActiveRecord::Base
 
   def mark_read
     messages.update_all(:read => true, :updated_at => Time.now)
-    self.unread_count = 0
-    self.save
+    #use update_all to maintain timestamp
+    self.update_column(:unread_count, 0)
   end
 
   def mark_deleted
     #TODO mark the actual gab as deleted as well
-    messages.update_all(:deleted => true, :updated_at => Time.now)
+    messages.update_all(:deleted => true, :updated_at => Time.now)    
+    #update the timestamp
     self.total_count = 0
     self.unread_count = 0
     self.content_cache = ''
@@ -306,7 +304,7 @@ class Gab < ActiveRecord::Base
   end
 
   def create_clues
-    data = DataHelper.new(related_gab.user).avail_clues.shuffle
+    data = DataHelper.new(related_gab.user).avail_clues
 
     data.each_index do |i|
       item = data[i]
@@ -318,14 +316,12 @@ class Gab < ActiveRecord::Base
         :value => item[1]
       )
     end
-
-    self.update_attributes(:clue_count => data.count)
   end
 end
 
 class Message < ActiveRecord::Base
   belongs_to :user
-  belongs_to :gab
+  belongs_to :gab, :touch => true
   scope :visible, -> {where(deleted: false)}
 
   def as_json(opt={})
@@ -406,8 +402,12 @@ class Message < ActiveRecord::Base
 end
 
 class Clue < ActiveRecord::Base
-  belongs_to :gab
+  belongs_to :gab, :counter_cache => :clue_count
   belongs_to :user
+
+  def as_json(opt={})
+    super(only: [:id, :gab_id, :field, :value, :number])
+  end
 
   def self.dump_updated(user, time)
     fields = [:id, :gab_id, :field, :value, :number]

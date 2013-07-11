@@ -67,15 +67,14 @@ post '/gabs/:gab_id/messages' do
   end
 end
 
-post '/gabs/:gab_id/clues/request' do
-  number = params[:number]
-  return invalid_request if number.nil
-  clue = gab.clues.find(:number => number.to_i)
+post '/gabs/:gab_id/clues/request/:number' do
+  number = params[:number].to_i
+  clue = @gab.clues.find_by_number(number)
   return invalid_request if clue.nil?
   if clue.reveal.nil?
     err 400, "request failed"
   else
-    ok :clue => clue
+    ok clue
   end
 end
 
