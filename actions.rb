@@ -284,7 +284,7 @@ post '/get-friends' do
 end
 
 get '/ping' do
-  ok :base_url => BASE_URL, :database_url => ENV['DATABASE_URL']
+  ok :base_url => BASE_URL
 end
 
 get '/admin' do
