@@ -91,7 +91,7 @@ class BackdoorTestCase < MiniTest::Unit::TestCase
         related_phone: opt[:related_phone]||gab.related_phone,
         related_user_name: opt[:related_user_name]||gab.related_user_name,
         updated_at: wildcard_matcher,
-        sent: true,
+        sent: opt[:sent] || gab.sent,
         total_count: opt[:total_count]||gab.total_count,
         unread_count: opt[:unread_count]||gab.unread_count,
         content_cache: opt[:content_cache]||gab.content_cache,

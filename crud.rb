@@ -43,8 +43,13 @@ get '/gabs/:gab_id' do
 end
 
 post '/gabs/:gab_id' do
-  return invalid_request 
-  #TODO we do not have any characteristics users can change yet
+  if params[:related_user_name].present?
+    @gab.related_user_name = params[:related_user_name]
+    @gab.save
+    ok @gab
+  else
+    return invalid_request
+  end
 end
 
 delete '/gabs/:gab_id' do

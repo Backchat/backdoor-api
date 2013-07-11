@@ -4,6 +4,14 @@ class GabWriteTest  < BackdoorTestCase
   #write tests
   #self.i_suck_and_my_tests_are_order_dependent
 
+  def test_tagging_a_gab
+    a_gab = @mary.gabs.order("random()").first
+    auth_post_ok @mary, "/gabs/#{a_gab.id}", {related_user_name: "acat"}
+    a_gab.reload
+    assert a_gab.related_user_name == "acat", "POST to gab refused to set related user name"
+    assert_json_match response_ok(generate_gab_json(a_gab, {})), last_response.body
+  end
+
   def test_delete_a_gab
     auth_delete_ok @mary, "/gabs/#{@mary.gabs.first.id}"
     #TODO: no deleted mark on gab, we can only check messaages (which would be empty)
