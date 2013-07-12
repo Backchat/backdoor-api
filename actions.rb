@@ -192,29 +192,6 @@ post '/fb-update' do
   ok {}
 end
 
-get '/fb-update' do
-  mode = params['hub.mode']
-  ch = params['hub.challenge']
-  token = params['hub.verify_token']
-
-  err 400, 'invalid request' if mode != 'subscribe'
-  err 400, 'invalid request' if token != 'caplabs'
-
-  return ch
-end
-
-post '/fb-update' do
-  request.body.rewind
-  data = JSON.load(request.body.read)
-  data['entry'].each do |entry|
-    uid = entry['uid']
-    user = User.where(:fb_id => uid)[0]
-    next if user.nil?
-    user.fetch_fb_friends
-  end
-  ok {}
-end
-
 post '/get-friends' do
   ok :friends => @user.get_friends
 end
