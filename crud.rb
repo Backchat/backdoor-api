@@ -11,6 +11,7 @@ get '/gabs' do
 end
 
 post '/gabs' do
+  puts "#{params[:message]} #{params[:receiver]}"
   message_params = params[:message]
   receiver = params[:receiver]
 
@@ -18,12 +19,15 @@ post '/gabs' do
 
   r_user = User.find_by_params(receiver)
 
-  return invalid_request if r_user.blank?
+  return err(400, 'user does not exist') if r_user.blank?
   
   gab = Gab.my_create(@user, r_user, r_user.email, r_user.phone) #TODO fix my_create 
   message = gab.create_message_from_params(message_params)  
   
-  ok gab
+  #TODO make tests pass here, fix this ugly, DRY with get, put in model
+  hsh = gab.as_json
+  hsh["gab"]["messages"] = [message.as_json()["message"]]
+  ok hsh
 end
 
 ['/gabs/:gab_id', '/gabs/:gab_id/*'].each do |path|

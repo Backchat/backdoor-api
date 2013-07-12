@@ -224,6 +224,12 @@ class Friendship < ActiveRecord::Base
   end
 end
 
+class Time
+  def written_time
+    self.strftime("%F %T")
+  end
+end
+
 class Gab < ActiveRecord::Base
   has_one :related_gab, :class_name => 'Gab', :foreign_key => 'related_gab_id'
   has_many :messages, :dependent => :destroy, :order => "created_at DESC"
@@ -231,7 +237,9 @@ class Gab < ActiveRecord::Base
   belongs_to :user
 
   def as_json opts={}
-    super(except: [:user_id, :created_at, :related_gab_id])
+    hsh = super(except: [:user_id, :created_at, :related_gab_id, :updated_at])
+    hsh["gab"]["updated_at"] = updated_at.written_time #TODO more beauitufl via method: but later
+    hsh
   end
    
   #sender, receiver!!!
@@ -363,7 +371,9 @@ class Message < ActiveRecord::Base
   scope :visible, -> {where(deleted: false)}
 
   def as_json(opt={})
-    super(:except => [:updated_at])
+    hsh = super(:except => [:updated_at, :created_at])
+    hsh["message"]["created_at"] = created_at.written_time
+    hsh
   end
 
   def summary
@@ -512,7 +522,6 @@ class Token < ActiveRecord::Base
     user = resp[:user]
     new_user = resp[:new_user]
 
-    user.create_welcome_message if new_user
     token = user.tokens.create(:access_token => access_token)
 
     [user, new_user]

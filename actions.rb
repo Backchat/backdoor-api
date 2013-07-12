@@ -1,39 +1,49 @@
 
 before do
-  access_token = params[:access_token]
-  device_token = params[:device_token]
-  provider = params[:provider]
-  fb_data = JSON.parse(params[:fb_data]) unless params[:fb_data].blank?
-  gpp_data = JSON.parse(params[:gpp_data]) unless params[:gpp_data].blank?
-  blitz_token = params[:blitz_token]
+  return if ['/admin', '/images', '/ping', '/fb-update', '/login'].include? request.path
 
-  return if request.path == '/admin' or request.path == '/images' or request.path == '/ping' or request.path == '/fb-update'
+  access_token = params[:access_token]
 
   err 400, 'invalid request' if access_token.nil?
 
+  blitz_token = params[:blitz_token]
   @blitz_mode = (blitz_token == BLITZ_TOKEN)
 
   token = Token.token_authenticate(access_token)
 
   if token.nil?
-    auth = Token.authenticate(access_token, provider, fb_data, gpp_data)
-    @user = auth[0]
-    @new_user = auth[1]
+    return err 400, "invalid request"
   else
     @user = token.user
     @new_user = false
+  end
+end
 
-    if @user.fb_data != fb_data && !fb_data.blank?
-      @user.fb_data = fb_data
-      @user.save
-    end
-    if @user.gpp_data != gpp_data && !gpp_data.blank?
-      @user.gpp_data = gpp_data
-      @user.save
-    end
+post '/login' do
+  access_token = params[:access_token]
+  device_token = params[:device_token]
+  provider = params[:provider]
+
+  return err 400, "invalid request" if access_token.blank? || device_token.blank? || provider.blank? || !(params[:fb_data].present? || params[:gpp_data].present?)
+
+  return ok if Token.find_by_access_token(access_token)
+
+  fb_data = JSON.parse(params[:fb_data]) unless params[:fb_data].blank?
+  gpp_data = JSON.parse(params[:gpp_data]) unless params[:gpp_data].blank?
+
+  auth = Token.authenticate(access_token, provider, fb_data, gpp_data)
+  user = auth[0]
+  device = Device.my_find_or_create(device_token, user)
+
+  if user.fb_data != fb_data && !fb_data.blank?
+    user.fb_data = fb_data
+  end
+  if user.gpp_data != gpp_data && !gpp_data.blank?
+    user.gpp_data = gpp_data
   end
 
-  device = Device.my_find_or_create(device_token, @user)
+  user.save
+  ok
 end
 
 post '/featured-users' do
