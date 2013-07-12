@@ -56,7 +56,6 @@ ActiveRecord::Schema.define(:version => 20130711210752) do
     t.integer  "friend_id"
     t.string   "social_id",  :default => "", :null => false
     t.string   "provider",   :default => "", :null => false
-    t.string   "name",       :default => "", :null => false
     t.string   "first_name", :default => "", :null => false
     t.string   "last_name",  :default => "", :null => false
     t.datetime "created_at",                 :null => false
