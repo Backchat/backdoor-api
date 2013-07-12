@@ -34,6 +34,7 @@ end
 
 def resp(ok, data)
   content_type 'application/json'
+
   {
     'status' => ok ? 'ok' : 'error',
     'response' => data

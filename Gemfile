@@ -29,4 +29,11 @@ group :development do
   gem 'blitz'
 end
 
+group :test do
+  gem 'machinist'
+  gem 'resque_spec'
+  gem 'json_expressions'
+  gem 'webmock'
+end
+     
 gem 'airbrake'

@@ -9,20 +9,27 @@ require 'grocer'
 require 'httpclient'
 require 'phony'
 
-
 class User < ActiveRecord::Base
   has_many :tokens, :dependent => :destroy
   has_many :devices, :dependent => :destroy
   has_many :purchases, :dependent => :destroy
   has_many :clues, :dependent => :destroy
-  has_many :gabs, :dependent => :destroy
-  has_many :messages, :dependent => :destroy
+  has_many :gabs, :dependent => :destroy, :order => "updated_at DESC"
+  has_many :messages, :dependent => :destroy, :order => "created_at DESC"
+  #TODO: when fb_id is changed, destroy all facebook friendships; fetch friends when fb_id is set
   has_many :friendships, :dependent => :destroy
   has_many :incoming_friendships, :class_name => 'Friendship', :dependent => :destroy, :foreign_key => 'friend_id'
 
   serialize :fb_data
   serialize :gpp_data
   serialize :settings
+
+  after_create :add_default_purchases
+  after_create :send_welcome_message
+
+  def self.find_by_params(param_obj) 
+    return User.find_by_id(param_obj[:id])
+  end
 
   def self.my_find_or_create(fb_id, gpp_id, email, phone, fake = false)
     user = User.find_or_create_by_fb_id(fb_id) unless fb_id.blank?
@@ -109,14 +116,15 @@ class User < ActiveRecord::Base
   #  )
   #end
 
-  def create_welcome_message
+  def add_default_purchases
     self.purchases.create(:clues => CLUES_DEFAULT)
+  end
 
+  def send_welcome_message
     sender = User.find_by_fb_id(FACTORY_USER_UID)
     return if sender.nil?
 
     gab = Gab.my_create(self, sender, 'Backdoor', '')
-    gab.update_attributes(:related_user_name => 'Backdoor')
     gab.create_message('Welcome to Backdoor!', MESSAGE_KIND_TEXT, false, random_key)
   end
 
@@ -165,21 +173,31 @@ class User < ActiveRecord::Base
     resp = client.get(url, :client_id => FACEBOOK_APP_ID, :client_secret => FACEBOOK_APP_SECRET, :grant_type => 'client_credentials')
     token = resp.content.sub('access_token=', '')
 
-    url = 'https://graph.facebook.com/%s/friends?fields=id,first_name,last_name,name' % self.fb_id
+    url = "https://graph.facebook.com/#{self.fb_id}/friends?fields=id,first_name,last_name"
     resp = client.get(url, :access_token => token)
     data = JSON.parse(resp.content)
+
+    friends = data['data']
 
     social_ids = []
 
     data['data'].each do |item|
-      friend = User.where(:fb_id => item['id'])[0]
+      friend = User.find_by_fb_id(item['id'])
       social_ids << item['id']
       next if friend.nil?
-      friendship = Friendship.find_or_create_by_user_id_and_friend_id_and_provider_and_social_id(self.id, friend.id, 'facebook', item['id'])
-      friendship.update_attributes(:name => item['name'], :first_name => item['first_name'], :last_name => item['last_name'])
+      friendship = self.friendships.find_or_initialize_by_friend_id_and_provider_and_social_id(friend.id, Friendship::FACEBOOK_PROVIDER, item['id'])
+      friendship.first_name = item['first_name']
+      friendship.last_name = item['last_name']
+      friendship.save
     end
 
-    Friendship.where(:provider => 'facebook', :user_id => self.id).where('social_id NOT IN (?)', social_ids).destroy_all
+    #TODO this is expensive, change 
+    if social_ids.empty?
+      #no friends anymore, lover
+      self.friendships.facebook.destroy_all
+    else
+      self.friendships.facebook.where('social_id NOT IN (?)', social_ids).destroy_all
+    end
   end
 
   def fetch_friends
@@ -210,23 +228,42 @@ end
 
 class Friendship < ActiveRecord::Base
   belongs_to :user
+  belongs_to :friend, :class_name => "User"
+
+  FACEBOOK_PROVIDER = "facebook"
+
+  scope :facebook, -> {where(provider: FACEBOOK_PROVIDER)}
+
+  def as_json(opt={})
+    super(:only => [:id, :user_id, :friend_id, :social_id, :provider])
+  end
+end
+
+class Time
+  def written_time
+    self.strftime("%F %T")
+  end
 end
 
 class Gab < ActiveRecord::Base
   has_one :related_gab, :class_name => 'Gab', :foreign_key => 'related_gab_id'
-  has_many :messages, :dependent => :destroy
+  has_many :messages, :dependent => :destroy, :order => "created_at DESC"
   has_many :clues
   belongs_to :user
 
-  cattr_accessor :current_user
-
+  def as_json opts={}
+    hsh = super(except: [:user_id, :created_at, :related_gab_id, :updated_at])
+    hsh["gab"]["updated_at"] = updated_at.written_time #TODO more beauitufl via method: but later
+    hsh
+  end
+   
+  #sender, receiver!!!
   def self.my_create(user, receiver, related_user_name, related_phone)
     gab = Gab.create(
       :user_id => user.id,
       :related_user_name => related_user_name || '',
       :related_avatar => receiver.avatar_url,
       :sent => true,
-      :last_date => Time.now
     )
 
     gab_recv = Gab.create(
@@ -236,30 +273,12 @@ class Gab < ActiveRecord::Base
       :related_avatar => '',
       :related_phone => related_phone || '',
       :sent => false,
-      :last_date => Time.now
     )
 
     gab.update_attributes(:related_gab_id => gab_recv.id)
     gab_recv.create_clues
 
     gab
-  end
-
-  def self.dump_updated(user, time, messages)
-    fields = [:id, :related_user_name, :related_avatar, :content_cache, :content_summary, :unread_count, :total_count, :clue_count, :sent, date_sql(:last_date)]
-
-    gab_ids = messages.map { |x| x['gab_id'] }
-    gab_ids << -1
-
-    sql = Gab
-      .select(fields)
-      .where('id in (?) OR (user_id = ? AND updated_at > ?)', gab_ids, user, time)
-      .order('last_date DESC')
-      .to_sql
-
-    gabs = ActiveRecord::Base.connection.select_all(sql)
-
-    gabs
   end
 
   def create_message(content, kind, sent, key)
@@ -296,7 +315,6 @@ class Gab < ActiveRecord::Base
 
     self.total_count += 1
     self.unread_count += 1 unless sent
-    self.last_date = msg.updated_at
 
     summary = msg.summary
     unless summary.nil? or summary.empty?
@@ -310,16 +328,35 @@ class Gab < ActiveRecord::Base
       msg_obj = msg.build_apn_hash
       Resque.enqueue(MessageDeliveryQueue, msg_obj) unless sent
     end
+
+    msg
+  end
+
+  def create_message_from_params(params) 
+    content = params[:content]
+    kind = params[:kind].try(:to_i)
+    key = params[:key] || ''
+  
+    return nil if content.blank? || kind.blank?
+
+    message = self.create_message(content, kind, true, key) 
+    self.related_gab.create_message(content, kind, false, key)
+
+    self.mark_read #TODO stop doing this
+
+    message
   end
 
   def mark_read
     messages.update_all(:read => true, :updated_at => Time.now)
-    self.unread_count = 0
-    self.save
+    #use update_all to maintain timestamp
+    self.update_column(:unread_count, 0)
   end
 
   def mark_deleted
-    messages.update_all(:deleted => true, :updated_at => Time.now)
+    #TODO mark the actual gab as deleted as well
+    messages.update_all(:deleted => true, :updated_at => Time.now)    
+    #update the timestamp
     self.total_count = 0
     self.unread_count = 0
     self.content_cache = ''
@@ -328,7 +365,7 @@ class Gab < ActiveRecord::Base
   end
 
   def create_clues
-    data = DataHelper.new(related_gab.user).avail_clues.shuffle
+    data = DataHelper.new(related_gab.user).avail_clues
 
     data.each_index do |i|
       item = data[i]
@@ -340,33 +377,18 @@ class Gab < ActiveRecord::Base
         :value => item[1]
       )
     end
-
-    self.update_attributes(:clue_count => data.count)
   end
 end
 
 class Message < ActiveRecord::Base
   belongs_to :user
-  belongs_to :gab
+  belongs_to :gab, :touch => true
+  scope :visible, -> {where(deleted: false)}
 
-  def self.dump_updated(user, time)
-    fields = [:id, :gab_id, :content, :kind, :sent, :deleted, :secret, :key, date_sql(:created_at)]
-
-    sql = Message
-      .select(fields)
-      .where('user_id = ?', user)
-      .where('updated_at > ?', time)
-      .order('created_at DESC')
-      .limit(200)
-      .to_sql
-
-    values = ActiveRecord::Base.connection.select_all(sql)
-
-    values.each do |val|
-      val['content'] = '' if val['deleted'] == 't'
-    end
-
-    values
+  def as_json(opt={})
+    hsh = super(:except => [:updated_at, :created_at])
+    hsh["message"]["created_at"] = created_at.written_time
+    hsh
   end
 
   def summary
@@ -423,23 +445,11 @@ class Message < ActiveRecord::Base
 end
 
 class Clue < ActiveRecord::Base
-  belongs_to :gab
+  belongs_to :gab, :counter_cache => :clue_count
   belongs_to :user
 
-  def self.dump_updated(user, time)
-    fields = [:id, :gab_id, :field, :value, :number]
-
-    sql = Clue
-      .select(fields)
-      .where('user_id = ?', user)
-      .where('updated_at > ?', time)
-      .where(:revealed => true)
-      .order('created_at DESC')
-      .to_sql
-
-    clues = ActiveRecord::Base.connection.select_all(sql)
-
-    clues
+  def as_json(opt={})
+    super(only: [:id, :gab_id, :field, :value, :number])
   end
 
   def reveal
@@ -527,7 +537,6 @@ class Token < ActiveRecord::Base
     user = resp[:user]
     new_user = resp[:new_user]
 
-    user.create_welcome_message if new_user
     token = user.tokens.create(:access_token => access_token)
 
     [user, new_user]

@@ -20,22 +20,12 @@ set :show_exceptions, false
 set :dump_errors, false
 
 SMTP_SETTINGS = {
-  :address              => "smtp.gmail.com",
-  :port                 => "587",
-  :user_name            => "app@failin.gs",
-  :password             => "dp@VP#09",
-  :authentication       => "plain",
-  :domain               => "mail.gmail.com",
-  :enable_starttls_auto => true,
+  :address              => "localhost", 
+  :port                 => "1025",
 }
 
 TWILIO_SID = 'AC3a0890f50305fd4b1eccbc2251025ae8'
 TWILIO_TOKEN = '16efa8aa2178da2252a43ada84eea196'
-
-#APN_CERT = File.dirname(__FILE__) + '/misc/cl_dev.pem'
-#APN_GATEWAY = 'gateway.sandbox.push.apple.com'
-#APN_CERT_PROD = File.dirname(__FILE__) + '/misc/cl_prod.pem'
-#APN_GATEWAY_PROD = 'gateway.push.apple.com'
 
 if BACKDOOR_ENV == 'debug'
   APN_CERT = File.dirname(__FILE__) + '/misc/backdoor_dev.pem'
@@ -77,7 +67,6 @@ CLUES_DEFAULT = 21
 CLUES_MAX = 9
 
 CLUE_REASONS = ['fbshare', 'fblike', 'fbinvite', 'tweet', 'gppshare']
-#CLUE_REASONS = ['freeclues']
 
 DB_TIMESTAMP = '2013-06-18T21:05:51+00:00'
 

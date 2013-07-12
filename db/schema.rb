@@ -10,7 +10,7 @@
 #
 # It's strongly recommended to check this file into your version control system.
 
-ActiveRecord::Schema.define(:version => 20130709104836) do
+ActiveRecord::Schema.define(:version => 20130711210752) do
 
   create_table "abuse_reports", :force => true do |t|
     t.integer  "user_id",    :default => 0,  :null => false
@@ -97,12 +97,12 @@ ActiveRecord::Schema.define(:version => 20130709104836) do
     t.text     "content",    :default => "",    :null => false
     t.integer  "kind",       :default => 0,     :null => false
     t.string   "secret",     :default => "",    :null => false
+    t.string   "key",        :default => "",    :null => false
     t.boolean  "read",       :default => false, :null => false
     t.boolean  "deleted",    :default => false, :null => false
     t.boolean  "sent",       :default => false, :null => false
     t.datetime "created_at",                    :null => false
     t.datetime "updated_at",                    :null => false
-    t.string   "key",        :default => "",    :null => false
   end
 
   add_index "messages", ["gab_id"], :name => "index_messages_on_gab_id"
@@ -139,9 +139,9 @@ ActiveRecord::Schema.define(:version => 20130709104836) do
     t.string   "fb_id",       :default => "",    :null => false
     t.text     "gpp_data",    :default => "",    :null => false
     t.text     "fb_data",     :default => "",    :null => false
+    t.text     "settings",    :default => "",    :null => false
     t.datetime "created_at",                     :null => false
     t.datetime "updated_at",                     :null => false
-    t.text     "settings",    :default => "",    :null => false
   end
 
   add_index "users", ["email"], :name => "index_users_on_email"
