@@ -124,7 +124,7 @@ class User < ActiveRecord::Base
 
   def send_welcome_message
     sender = User.find_by_fb_id(FACTORY_USER_UID)
-    return if sender.nil?
+    return if sender.nil? || sender == self
 
     gab = Gab.my_create(self, sender, 'Backdoor', '')
     gab.create_message('Welcome to Backdoor!', MESSAGE_KIND_TEXT, false, random_key)
@@ -326,7 +326,7 @@ class Gab < ActiveRecord::Base
 
     self.save
 
-    if !self.user.fake && self.user.registered
+    if !self.user.fake && self.user.registered && self.user.fb_id != FACTORY_USER_UID
       msg_obj = msg.build_apn_hash
       Resque.enqueue(MessageDeliveryQueue, msg_obj) unless sent
     end
