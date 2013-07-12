@@ -20,7 +20,8 @@ post '/gabs' do
   r_user = User.find_by_params(receiver)
 
   return err(400, 'user does not exist') if r_user.blank?
-  
+  return err(400, 'cannot send gab to yourself') if r_user == @user #TODO add test for this
+
   gab = Gab.my_create(@user, r_user, r_user.email, r_user.phone) #TODO fix my_create 
   message = gab.create_message_from_params(message_params)  
   
@@ -103,6 +104,21 @@ end
 get '/' do
   #get information about myself
   ok available_clues: @user.available_clues
+end
+
+post '/' do
+  #update fb_data, gpp_data
+  fb_data = JSON.parse(params[:fb_data]) unless params[:fb_data].blank?
+  gpp_data = JSON.parse(params[:gpp_data]) unless params[:gpp_data].blank?
+
+  if !fb_data && !gpp_data
+    return invalid_request
+  else
+    @user.fb_data = fb_data
+    @user.gpp_data = gpp_data
+    @user.save
+    ok
+  end
 end
 
 # users in actions

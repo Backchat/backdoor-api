@@ -62,12 +62,14 @@ class User < ActiveRecord::Base
           :type => 'facebook',
           :value => user.fb_id,
           :name => user.fb_data['name'] || '',
+          :friend_id => user.id
         }
       elsif !user.gpp_id.blank?
         item = {
           :type => 'gpp',
           :value => user.gpp_id,
-          :name => user.gpp_data['displayName'] || ''
+          :name => user.gpp_data['displayName'] || '',
+          :friend_id => user.id
         }
       else
         next
@@ -235,7 +237,7 @@ class Friendship < ActiveRecord::Base
   scope :facebook, -> {where(provider: FACEBOOK_PROVIDER)}
 
   def as_json(opt={})
-    super(:only => [:id, :user_id, :friend_id, :social_id, :provider])
+    super(:only => [:id, :user_id, :friend_id, :social_id, :provider, :first_name, :last_name])
   end
 end
 
