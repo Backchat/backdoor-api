@@ -102,7 +102,7 @@ end
 
 get '/' do
   #get information about myself
-  ok {:available_clues => @user.available_clues}
+  ok available_clues: @user.available_clues
 end
 
 # users in actions

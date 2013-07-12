@@ -46,7 +46,7 @@ post '/login' do
   ok
 end
 
-post '/featured-users' do
+get '/featured-users' do
   ok :users => User.dump_featured(@user)
 end
 
@@ -190,10 +190,6 @@ post '/fb-update' do
     user.fetch_fb_friends unless user.nil?
   end
   ok {}
-end
-
-post '/get-friends' do
-  ok :friends => @user.get_friends
 end
 
 get '/ping' do
