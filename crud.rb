@@ -100,6 +100,11 @@ get '/friends' do
   ok :friends => @user.friendships.map{|f| f.as_json["friendship"]}
 end
 
+get '/' do
+  #get information about myself
+  ok {:available_clues => @user.available_clues}
+end
+
 # users in actions
 # featured-users 
 # buy-clues 
