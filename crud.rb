@@ -82,7 +82,7 @@ end
 
 get '/gabs/:gab_id/clues/' do
   #TODO test this
-  hsh = {clues: @gab.clues.all.map {|c| c.as_json()["clue"]}}
+  hsh = {clues: @gab.clues.revealed.all.map {|c| c.as_json()["clue"]}}
   hsh[:available_clues] = @user.available_clues
   ok hsh
 end

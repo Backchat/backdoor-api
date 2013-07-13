@@ -453,6 +453,7 @@ end
 class Clue < ActiveRecord::Base
   belongs_to :gab, :counter_cache => :clue_count
   belongs_to :user
+  scope :revealed, -> { where(revealed: true) }
 
   def as_json(opt={})
     super(only: [:id, :gab_id, :field, :value, :number])
