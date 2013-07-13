@@ -239,6 +239,10 @@ class Friendship < ActiveRecord::Base
   def as_json(opt={})
     super(:only => [:id, :user_id, :friend_id, :social_id, :provider, :first_name, :last_name])
   end
+
+  def name
+    "#{first_name} #{last_name}"
+  end
 end
 
 class Time

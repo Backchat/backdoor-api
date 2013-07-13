@@ -11,18 +11,19 @@ get '/gabs' do
 end
 
 post '/gabs' do
-  puts "#{params[:message]} #{params[:receiver]}"
   message_params = params[:message]
-  receiver = params[:receiver]
+  receiver = params[:friendship]
 
   return invalid_request if message_params.blank? or receiver.blank?
 
-  r_user = User.find_by_params(receiver)
+  r_friendship = Friendship.find_by_id(receiver[:id])
 
-  return err(400, 'user does not exist') if r_user.blank?
-  return err(400, 'cannot send gab to yourself') if r_user == @user #TODO add test for this
+  #TODO add tests for this
+  return err(400, 'friendship does not exist') if r_friendship.blank?
+  return invalid_request if r_friendship.user != @user
+  r_user = r_friendship.friend
 
-  gab = Gab.my_create(@user, r_user, r_user.email, r_user.phone) #TODO fix my_create 
+  gab = Gab.my_create(@user, r_user, r_friendship.name, r_user.phone) #TODO fix my_create 
   message = gab.create_message_from_params(message_params)  
   
   #TODO make tests pass here, fix this ugly, DRY with get, put in model
