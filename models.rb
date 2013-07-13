@@ -25,7 +25,7 @@ class User < ActiveRecord::Base
   serialize :settings
 
   after_create :add_default_purchases
-  after_create :send_welcome_message
+  #after_create :send_welcome_message do not send anymore
 
   def self.find_by_params(param_obj) 
     return User.find_by_id(param_obj[:id])
