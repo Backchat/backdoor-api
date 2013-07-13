@@ -49,8 +49,10 @@ get '/gabs/:gab_id' do
 end
 
 post '/gabs/:gab_id' do
-  if params[:related_user_name].present?
-    @gab.related_user_name = params[:related_user_name]
+  @gab.related_user_name = params[:related_user_name] if params[:related_user_name].present?
+  @gab.unread_count = params[:unread_count] if params[:unread_count].present?
+
+  if @gab.changed?
     @gab.save
     ok @gab
   else
