@@ -33,6 +33,7 @@ post '/login' do
 
   auth = Token.authenticate(access_token, provider, fb_data, gpp_data)
   user = auth[0]
+  new_user = auth[1]
   device = Device.my_find_or_create(device_token, user)
 
   if user.fb_data != fb_data && !fb_data.blank?
@@ -43,7 +44,7 @@ post '/login' do
   end
 
   user.save
-  ok
+  ok new_user: new_user
 end
 
 get '/featured-users' do

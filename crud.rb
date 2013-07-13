@@ -80,7 +80,9 @@ end
 
 get '/gabs/:gab_id/clues/' do
   #TODO test this
-  ok clues: @gab.clues.all.map {|c| c.as_json()[:clue]}, available_clues: @user.available_clues
+  hsh = {clues: @gab.clues.all.map {|c| c.as_json()["clue"]}}
+  hsh[:available_clues] = @user.available_clues
+  ok hsh
 end
 
 post '/gabs/:gab_id/clues/request/:number' do
@@ -108,11 +110,13 @@ get '/friends' do
 end
 
 get '/' do
+  #TODO test
   #get information about myself
-  ok available_clues: @user.available_clues
+  ok available_clues: @user.available_clues, new_user: @user.new_user
 end
 
 post '/' do
+  #TODO test
   #update fb_data, gpp_data
   fb_data = JSON.parse(params[:fb_data]) unless params[:fb_data].blank?
   gpp_data = JSON.parse(params[:gpp_data]) unless params[:gpp_data].blank?
