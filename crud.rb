@@ -78,6 +78,11 @@ post '/gabs/:gab_id/messages' do
   end
 end
 
+get '/gabs/:gab_id/clues/' do
+  #TODO test this
+  ok clues: @gab.clues.all.map {|c| c.as_json()[:clue]}, available_clues: @user.available_clues
+end
+
 post '/gabs/:gab_id/clues/request/:number' do
   number = params[:number].to_i
   clue = @gab.clues.find_by_number(number)
