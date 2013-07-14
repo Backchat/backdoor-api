@@ -105,10 +105,6 @@ post '/free-clues' do
     reason = 'freeclues'
   end
 
-  if reason != 'debug'
-    reason = 'freeclues'
-  end
-
   count = 0
   pur = Purchase.find_by_user_id_and_transaction_id(@user, reason)
 
