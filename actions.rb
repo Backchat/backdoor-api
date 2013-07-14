@@ -80,7 +80,8 @@ post '/buy-clues' do
 
   product = products[product_id]
 
-  err 400, 'invalid receipt' unless product
+
+  err 400, 'invalid product' unless product
 
   pur = Purchase.find_or_create_by_transaction_id(transaction_id)
   err 400, 'invalid receipt' if pur.user.present? and pur.user_id != @user.id
