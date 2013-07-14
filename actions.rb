@@ -26,7 +26,7 @@ post '/login' do
 
   return err 400, "invalid request" if access_token.blank? || device_token.blank? || provider.blank? || !(params[:fb_data].present? || params[:gpp_data].present?)
 
-  return ok if Token.find_by_access_token(access_token)
+  return ok new_user: false if Token.find_by_access_token(access_token)
 
   fb_data = JSON.parse(params[:fb_data]) unless params[:fb_data].blank?
   gpp_data = JSON.parse(params[:gpp_data]) unless params[:gpp_data].blank?
