@@ -71,6 +71,13 @@ post '/buy-clues' do
     'YouTell_Mobile_Clues_003' => CLUES_003
   }
 
+  revenues = {
+    'YouTell_Mobile_Clues_001' => CLUES_REVENUE_001,
+    'YouTell_Mobile_Clues_002' => CLUES_REVENUE_002,
+    'YouTell_Mobile_Clues_003' => CLUES_REVENUE_003
+  }
+
+
   product = products[product_id]
 
   err 400, 'invalid receipt' unless product
@@ -78,14 +85,14 @@ post '/buy-clues' do
   pur = Purchase.find_or_create_by_transaction_id(transaction_id)
   err 400, 'invalid receipt' if pur.user.present? and pur.user_id != @user.id
 
-
+  revenue = pur.user.nil? ? revenues[product_id] : 0
 
   pur.update_attributes(
     :user => @user,
     :clues => product
   )
 
-  ok #TODO what to send back?
+  ok :revenue => revenue
 end
 
 post '/free-clues' do
