@@ -31,14 +31,17 @@ if BACKDOOR_ENV == 'debug'
   APN_CERT = File.dirname(__FILE__) + '/misc/backdoor_dev.pem'
   APN_GATEWAY = 'gateway.sandbox.push.apple.com'
   RECEIPT_VERIFY_URL = 'https://sandbox.itunes.apple.com/verifyReceipt'
+  PRODUCT_ID_SUFFIX = '_Dev'
 elsif BACKDOOR_ENV == 'stage'
   APN_CERT = File.dirname(__FILE__) + '/misc/backdoor_stage.pem'
   APN_GATEWAY= 'gateway.push.apple.com'
   RECEIPT_VERIFY_URL = 'https://sandbox.itunes.apple.com/verifyReceipt'
+  PRODUCT_ID_SUFFIX = '_Stage'
 elsif BACKDOOR_ENV == 'release'
   APN_CERT = File.dirname(__FILE__) + '/misc/cl_prod.pem'
   APN_GATEWAY = 'gateway.push.apple.com'
   RECEIPT_VERIFY_URL = 'https://buy.itunes.apple.com/verifyReceipt'
+  PRODUCT_ID_SUFFIX = nil
 end
 
 BLITZ_TOKEN = '36a9c080ff6fdce0e32c66c3eb3edd9e'

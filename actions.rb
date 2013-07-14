@@ -65,6 +65,8 @@ post '/buy-clues' do
   transaction_id = data['receipt']['original_transaction_id']
   product_id = data['receipt']['product_id']
 
+  product_id = product_id.sub(PRODUCT_ID_SUFFIX, '') unless PRODUCT_ID_SUFFIX.blank?
+
   products = {
     'YouTell_Mobile_Clues_001' => CLUES_001,
     'YouTell_Mobile_Clues_002' => CLUES_002,
