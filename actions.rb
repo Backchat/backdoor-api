@@ -123,7 +123,7 @@ post '/free-clues' do
     pur.save
   end
 
-  ok :count => count, :available_clues => @user.available_clues
+  ok :count => count, :available_clues => @user.available_clues, :settings => @user.settings
 end
 
 post '/feedbacks' do
