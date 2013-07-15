@@ -27,10 +27,7 @@ post '/login' do
   return err 400, "invalid request" if access_token.blank? || device_token.blank? || provider.blank? || !(params[:fb_data].present? || params[:gpp_data].present?)
 
   token = Token.find_by_access_token(access_token)
-  if token
-    user = token.user
-    return ok(new_user: false, :available_clues => user.available_clues, :settings => user.settings) 
-  end
+  return ok token.user if token
 
   fb_data = JSON.parse(params[:fb_data]) unless params[:fb_data].blank?
   gpp_data = JSON.parse(params[:gpp_data]) unless params[:gpp_data].blank?
@@ -48,7 +45,7 @@ post '/login' do
   end
 
   user.save
-  ok new_user: new_user, :available_clues => user.available_clues, :settings => user.settings
+  ok user
 end
 
 get '/featured-users' do

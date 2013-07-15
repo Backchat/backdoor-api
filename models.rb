@@ -27,6 +27,15 @@ class User < ActiveRecord::Base
   after_create :add_default_purchases
   #after_create :send_welcome_message do not send anymore
 
+  def as_json(opt={})
+    {:user => {
+      :new_user => !self.registered,
+      :settings => self.settings,
+      :available_clues => self.available_clues
+      }
+    }
+  end
+
   def self.find_by_params(param_obj) 
     return User.find_by_id(param_obj[:id])
   end
@@ -88,7 +97,7 @@ class User < ActiveRecord::Base
   end
 
   def unread_messages
-    messages.where(:read => false, :deleted => false).count
+    gabs.sum(:unread_count)
   end
 
   def avatar_url

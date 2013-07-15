@@ -74,7 +74,11 @@ post '/gabs/:gab_id' do
 
   if @gab.changed?
     @gab.save
-    ok @gab
+    hsh = @gab.as_json
+    if params[:total_unread_count].present?
+      hsh[:total_unread_count] = @user.unread_messages
+    end
+    ok hsh
   else
     return invalid_request
   end
@@ -134,7 +138,7 @@ end
 get '/' do
   #TODO test
   #get information about myself
-  ok available_clues: @user.available_clues, new_user: @user.new_user
+  ok @user
 end
 
 post '/' do
