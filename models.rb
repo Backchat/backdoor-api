@@ -62,14 +62,14 @@ class User < ActiveRecord::Base
           :type => 'facebook',
           :value => user.fb_id,
           :name => user.fb_data['name'] || '',
-          :friend_id => user.id
+          :featured_id => user.id
         }
       elsif !user.gpp_id.blank?
         item = {
           :type => 'gpp',
           :value => user.gpp_id,
           :name => user.gpp_data['displayName'] || '',
-          :friend_id => user.id
+          :featured_id => user.id
         }
       else
         next

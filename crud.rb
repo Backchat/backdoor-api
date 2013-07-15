@@ -12,18 +12,38 @@ end
 
 post '/gabs' do
   message_params = params[:message]
-  receiver = params[:friendship]
+  return invalid_request if message_params.blank?
 
-  return invalid_request if message_params.blank? or receiver.blank?
+  related_name = nil
 
-  r_friendship = Friendship.find_by_id(receiver[:id])
+  if params[:friendship]
+    receiver = params[:friendship]
+    r_friendship = Friendship.find_by_id(receiver[:id])
 
-  #TODO add tests for this
-  return err(400, 'friendship does not exist') if r_friendship.blank?
-  return invalid_request if r_friendship.user != @user
-  r_user = r_friendship.friend
+    #TODO add tests for this
+    return err(400, 'friendship does not exist') if r_friendship.blank?
+    return invalid_request if r_friendship.user != @user
 
-  gab = Gab.my_create(@user, r_user, r_friendship.name, r_user.phone) #TODO fix my_create 
+    r_user = r_friendship.friend
+    related_name = r_friendship.name
+  elsif params[:featured]
+    return invalid_request unless params[:featured][:id].present?
+    id = params[:featured][:id]
+
+    r_user = User.find(id)
+    return invalid_request if r_user.nil? || r_user == @user
+
+    #TODO refactor this fuck
+    if r_user.fb_id.present?
+      related_name = r_user.fb_data['name'] || ''
+    elsif r_user.gpp_id.present?
+      related_name = r_user.gpp_data['displayName'] || ''
+    end
+  else
+    return invalid_request
+  end
+
+  gab = Gab.my_create(@user, r_user, related_name, r_user.phone) #TODO fix my_create 
   message = gab.create_message_from_params(message_params)  
   
   #TODO make tests pass here, fix this ugly, DRY with get, put in model
