@@ -201,7 +201,7 @@ class User < ActiveRecord::Base
       friendship.last_name = item['last_name']
       friendship.save
       #reverse friendship as well
-      r_friendship = friend.friendships.find_or_initialize_by_friend_id_and_provider_and_social_id(self.id, Friendship::FACEBOOK_PROVIDER, item['id'])
+      r_friendship = friend.friendships.find_or_initialize_by_friend_id_and_provider_and_social_id(self.id, Friendship::FACEBOOK_PROVIDER, self.fb_id)
       r_friendship.first_name = self.fb_data['first_name']
       r_friendship.last_name = self.fb_data['last_name']
       r_friendship.save
