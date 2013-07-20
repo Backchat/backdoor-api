@@ -192,19 +192,21 @@ class User < ActiveRecord::Base
 
     social_ids = []
 
-    data['data'].each do |item|
-      friend = User.find_by_fb_id(item['id'])
-      social_ids << item['id']
-      next if friend.nil?
-      friendship = self.friendships.find_or_initialize_by_friend_id_and_provider_and_social_id(friend.id, Friendship::FACEBOOK_PROVIDER, item['id'])
-      friendship.first_name = item['first_name']
-      friendship.last_name = item['last_name']
-      friendship.save
-      #reverse friendship as well
-      r_friendship = friend.friendships.find_or_initialize_by_friend_id_and_provider_and_social_id(self.id, Friendship::FACEBOOK_PROVIDER, self.fb_id)
-      r_friendship.first_name = self.fb_data['first_name']
-      r_friendship.last_name = self.fb_data['last_name']
-      r_friendship.save
+    if data['data'].present?
+      data['data'].each do |item|
+        friend = User.find_by_fb_id(item['id'])
+        social_ids << item['id']
+        next if friend.nil?
+        friendship = self.friendships.find_or_initialize_by_friend_id_and_provider_and_social_id(friend.id, Friendship::FACEBOOK_PROVIDER, item['id'])
+        friendship.first_name = item['first_name']
+        friendship.last_name = item['last_name']
+        friendship.save
+        #reverse friendship as well
+        r_friendship = friend.friendships.find_or_initialize_by_friend_id_and_provider_and_social_id(self.id, Friendship::FACEBOOK_PROVIDER, self.fb_id)
+        r_friendship.first_name = self.fb_data['first_name']
+        r_friendship.last_name = self.fb_data['last_name']
+        r_friendship.save
+      end
     end
 
     #TODO this is expensive, change 
