@@ -61,7 +61,9 @@ post '/buy-clues' do
   resp = client.post(url, data)
   data = JSON.parse(resp.content)
 
-  err 400, 'invalid receipt' if data['status'] != 0
+  puts data
+
+  err 401, 'invalid receipt' if data['status'] != 0
 
   transaction_id = data['receipt']['original_transaction_id']
   product_id = data['receipt']['product_id']
@@ -84,10 +86,12 @@ post '/buy-clues' do
   product = products[product_id]
 
 
-  err 400, 'invalid product' unless product
+  err 402, 'invalid product' unless product
 
   pur = Purchase.find_or_create_by_transaction_id(transaction_id)
-  err 400, 'invalid receipt' if pur.user.present? and pur.user_id != @user.id
+  puts pur
+
+  err 403, 'invalid receipt' if pur.user.present? and pur.user_id != @user.id
 
   revenue = pur.user.nil? ? revenues[product_id] : 0
 
