@@ -88,3 +88,5 @@ configure :production do
   use Airbrake::Rack
   enable :raise_errors
 end
+
+$stdout.sync = true

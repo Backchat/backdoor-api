@@ -66,6 +66,7 @@ post '/buy-clues' do
   err 401, 'invalid receipt' if data['status'] != 0
 
   transaction_id = data['receipt']['original_transaction_id']
+  transaction_id = data['receipt']['transaction_id'] unless transaction_id
   product_id = data['receipt']['product_id']
 
   product_id = product_id.sub(PRODUCT_ID_SUFFIX, '') unless PRODUCT_ID_SUFFIX.blank?
@@ -85,11 +86,12 @@ post '/buy-clues' do
 
   product = products[product_id]
 
-
+  
+  puts "product: #{product}"
   err 402, 'invalid product' unless product
 
   pur = Purchase.find_or_create_by_transaction_id(transaction_id)
-  puts pur
+  puts "purcahse: #{pur}"
 
   err 403, 'invalid receipt' if pur.user.present? and pur.user_id != @user.id
 
