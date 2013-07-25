@@ -701,3 +701,12 @@ class AbuseReportDeliveryQueue
     )
   end
 end
+
+class UpdateFBFriendsQueue
+  @queue = :update_fb_friends
+  def self.perform u_id
+    user = User.find_by_fb_id(u_id)
+    return if user.nil?
+    user.fetch_fb_friends
+  end
+end

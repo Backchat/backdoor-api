@@ -200,8 +200,7 @@ post '/fb-update' do
   data = JSON.parse(request.body.read)
   data['entry'].each do |entry|
     uid = entry['uid']
-    user = User.find_by_fb_id(uid)
-    user.fetch_fb_friends unless user.nil?
+    Resque.enqueue(UpdateFBFriendsQueue, uid)
   end
   ok {}
 end
