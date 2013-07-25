@@ -449,7 +449,7 @@ class Message < ActiveRecord::Base
   def self.deliver_apn_hash pushers, hash
     hash = hash.symbolize_keys
     hash[:device_tokens].each do |device_token|
-      ActiveRecord::Base.logger.info 'Delivering apn to %s' % device_token
+      ActiveRecord::Base.logger.info "Delivering apn to #{device_token} hash: #{hash}"
       notification = 
         Grocer::Notification.new(
                                  device_token: device_token,
