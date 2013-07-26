@@ -34,6 +34,7 @@ if BACKDOOR_ENV == 'debug'
   PRODUCT_ID_SUFFIX = '_Dev'
   FACEBOOK_APP_SECRET = 'ccf194f1fb15d43e32ff24f705e14a77'
   FACEBOOK_APP_ID = '550948541621423'
+  AIRBRAKE_TOKEN = '3bd6607eacd01e5e4376e2115e700540'
 elsif BACKDOOR_ENV == 'stage'
   APN_CERT = File.dirname(__FILE__) + '/misc/backdoor_stage.pem'
   APN_GATEWAY= 'gateway.push.apple.com'
@@ -41,6 +42,7 @@ elsif BACKDOOR_ENV == 'stage'
   PRODUCT_ID_SUFFIX = '_Stage'
   FACEBOOK_APP_SECRET = 'b4c85880f9d0e30f2e192c51a7871095'
   FACEBOOK_APP_ID = '489124394513672'
+  AIRBRAKE_TOKEN = '3bd6607eacd01e5e4376e2115e700540'
 elsif BACKDOOR_ENV == 'release'
   APN_CERT = File.dirname(__FILE__) + '/misc/cl_prod.pem'
   APN_GATEWAY = 'gateway.push.apple.com'
@@ -48,12 +50,13 @@ elsif BACKDOOR_ENV == 'release'
   PRODUCT_ID_SUFFIX = nil
   FACEBOOK_APP_SECRET = 'e40b47d88cca1ab20012e85c21da74bb'
   FACEBOOK_APP_ID = '122753474571987'
+  AIRBRAKE_TOKEN = 'b759ebcaee4ac821de8eb104033079d7'
 end
 
 BLITZ_TOKEN = '36a9c080ff6fdce0e32c66c3eb3edd9e'
 
-FEEDBACK_EMAIL = 'number1@capricalabs.com'
-ABUSE_REPORT_EMAIL = 'abuse@youtell.com'
+FEEDBACK_EMAIL = 'abuse@backdoorapp.com'
+ABUSE_REPORT_EMAIL = 'abuse@backdoorapp.com'
 
 MESSAGE_KIND_TEXT = 0
 MESSAGE_KIND_PHOTO = 1
@@ -81,12 +84,12 @@ CLUE_REASONS = ['fbshare', 'fblike', 'fbinvite', 'tweet', 'gppshare']
 
 DB_TIMESTAMP = '2013-06-18T21:05:51+00:00'
 
-configure :production do
-  Airbrake.configure do |config|
-    config.api_key = 'b759ebcaee4ac821de8eb104033079d7'
-  end
-  use Airbrake::Rack
-  enable :raise_errors
+Airbrake.configure do |config|
+  config.api_key = AIRBRAKE_TOKEN
+  config.development_environments = []
 end
+
+use Airbrake::Rack
+enable :raise_errors
 
 $stdout.sync = true
