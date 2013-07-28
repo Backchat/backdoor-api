@@ -20,8 +20,12 @@ set :show_exceptions, false
 set :dump_errors, false
 
 SMTP_SETTINGS = {
-  :address              => "localhost", 
-  :port                 => "1025",
+  :address        => 'smtp.gmail.com',
+  :port           => '587',
+  :user_name      => 'app@failin.gs',
+  :password       => 'dp@VP#09',
+  :authentication => :plain,
+  :domain         => "mail.gmail.com"
 }
 
 TWILIO_SID = 'AC3a0890f50305fd4b1eccbc2251025ae8'
