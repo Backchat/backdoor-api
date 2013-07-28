@@ -216,7 +216,18 @@ class User < ActiveRecord::Base
     else
       self.friendships.facebook.where('social_id NOT IN (?)', social_ids).destroy_all
     end
+
+    unless self.notified_friends
+      Resque.enqueue(FriendNotificationQueue, self.id)
+      self.notified_friends = true
+      self.save
+    end
   end
+
+  def get_name
+    DataHelper.new(self).load_name || ''
+  end
+    
 
   def fetch_friends
     self.fetch_fb_friends unless self.fb_id.blank?
@@ -228,13 +239,42 @@ class User < ActiveRecord::Base
     end
 
     sql = Friendship
-      .select([:provider, :social_id, :first_name, :last_name, :name])
+      .select([:provider, :social_id, :first_name, :last_name])
       .where('user_id = ?', self.id)
       .to_sql
 
     data = ActiveRecord::Base.connection.select_all(sql)
 
     data
+  end
+
+  def notify_friends
+    pushers = MessageDeliveryQueue.build_pushers
+    # FIXME measure maximum name length correctly
+    name = self.get_name[0..50]
+    alert = "%s just joined Backdoor!" % name
+    self.incoming_friendships.each do |friendship|
+      friend = friendship.user
+      friend.devices.each do |device|
+        token = device.device_token
+        ActiveRecord::Base.logger.info 'Delivering friend notification to %s' % token
+        notif = Grocer::Notification.new(
+          alert: alert,
+          device_token: token,
+          sound: 'default',
+          custom: {
+            :kind => APN_KIND_FRIEND_NOTIF,
+            :receiver_email => friend.email,
+            :provider => friendship.provider,
+            :social_id => friendship.social_id
+          }
+        )
+
+        pushers.each do |push|
+          push.push(notif)
+        end
+      end
+    end
   end
 
   before_save do |obj|
@@ -626,6 +666,16 @@ class MessageDeliveryQueue
 
   def self.perform(hash)
     Message.deliver_apn_hash(MessageDeliveryQueue.build_pushers, hash)
+  end
+end
+
+class FriendNotificationQueue
+  @queue = :friend_notification
+
+  def self.perform(user_id)
+    user = User.find_by_id(user_id)
+    return if user.nil?
+    user.notify_friends
   end
 end
 
