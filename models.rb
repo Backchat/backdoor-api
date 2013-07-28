@@ -432,8 +432,8 @@ class Message < ActiveRecord::Base
       alert = "%s sent you a Backdoor message." % sender
     end
 
-    if alert.length > 100
-      alert = alert[0..96] + "..."
+    if alert.length > 80
+      alert = alert[0..76] + "..."
     end
 
     {
