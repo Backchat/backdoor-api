@@ -20,12 +20,13 @@ class User < ActiveRecord::Base
   has_many :friendships, :dependent => :destroy
   has_many :incoming_friendships, :class_name => 'Friendship', :dependent => :destroy, :foreign_key => 'friend_id'
 
+  has_many :invations, :dependent => :destroy
+
   serialize :fb_data
   serialize :gpp_data
   serialize :settings
 
   after_create :add_default_purchases
-  #after_create :send_welcome_message do not send anymore
 
   def as_json(opt={})
     {:user => {
@@ -109,23 +110,6 @@ class User < ActiveRecord::Base
       return ''
     end
   end
-
-  #def fetch_facebook_data
-  #  client = HTTPClient.new
-  #  url = 'https://graph.facebook.com/%d' % uid
-  #  resp = client.get(url)
-  #  my_data = JSON.parse(resp.content)
-
-  #  return if my_data['error']
-
-  #  my_data = data.update(my_data)
-  #  my_data['email'] = ('%s@facebook.com' % my_data['username']) if my_data['email'].blank?
-
-  #  update_attributes(
-  #    :data => my_data,
-  #    :email => my_data['email']
-  #  )
-  #end
 
   def add_default_purchases
     self.purchases.create(:clues => CLUES_DEFAULT)
@@ -621,100 +605,21 @@ class Image < ActiveRecord::Base
   end
 end
 
+class Invitation < ActiveRecord::Base
+  belongs_to :user
+  belongs_to :contact
 
-class MessageDeliveryQueue
-  @queue = :message_delivery
+  after_save :send_invitation  
 
-  def self.perform(hash)
-    deliver_apn_hash(hash)
-  end
-end
+  validates_length_of :body, :maximum => 180
 
-class FriendNotificationQueue
-  @queue = :friend_notification
-
-  def self.perform(hash)
-    deliver_apn_hash(hash)
-  end
-end
-
-class DeviceCleanupQueue
-  @queue = :device_cleanup
-
-  def self.perform
-    feedback = Grocer.feedback(
-      certificate:  APN_CERT,
-      gateway:      APN_GATEWAY,
-      passphrase:   '',
-      port:         2196,
-      retries:      3
-    )
-
-    feedback.each do |attempt|
-      device = Device.find_by_device_token(attempt.device_token)
-      next if device.nil?
-      device.destroy if attempt.timestamp > device.updated_at
+  def send_invitation
+    if !self.delivered && contact.enabled
+      Resque.enqueue(InviteSMSQueue, self.id)
     end
   end
-
 end
 
-class FeedbackDeliveryQueue
-  @queue = :feedback_delivery
-
-  def self.perform(id)
-    fb = Feedback.find_by_id(id)
-    return if fb.nil?
-
-    user = fb.user
-    user_name = user.get_name || 'Anonymous user'
-    from = "%s <%s>" % [user_name, user.email]
-
-    body = fb.content
-    body = body + "\n\nRating: %s" % fb.rating if fb.rating != 0
-
-    Pony.mail(
-      :to => FEEDBACK_EMAIL,
-      :via => :smtp,
-      :via_options => SMTP_SETTINGS,
-      :subject => 'New feedback' % user_name,
-      :from => from,
-      :reply_to => fb.user.email,
-      :body => body,
-    )
-  end
-end
-
-class AbuseReportDeliveryQueue
-  @queue = :abuse_report_delivery
-
-  def self.perform(id)
-    ar = AbuseReport.find_by_id(id)
-    return if ar.nil?
-
-    user = ar.user
-    user_name = user.get_name || 'Anonymous user'
-    from = "%s <%s>" % [user_name, user.email]
-
-    body = ar.content
-
-    Pony.mail(
-      :to => ABUSE_REPORT_EMAIL,
-      :via => :smtp,
-      :via_options => SMTP_SETTINGS,
-      :subject => 'Abuse report from %s (#%s)' % [user_name, user.id],
-      :from => from,
-      :reply_to => user.email,
-      :body => body,
-    )
-  end
-end
-
-class UpdateFBFriendsQueue
-  @queue = :update_fb_friends
-  def self.perform u_id
-    user = User.find_by_fb_id(u_id)
-    return if user.nil?
-    user.fetch_fb_friends
-  end
+class Contact < ActiveRecord::Base
+  #todo validates number
 end
