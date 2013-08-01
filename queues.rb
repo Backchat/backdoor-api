@@ -98,12 +98,11 @@ end
 class InviteSMSQueue
   @queue = :invite_sms
   def self.perform i_id
-    invite = Invitations.find_by_id(i_id)
+    invite = Invitation.find_by_id(i_id)
     return unless invite
     client = Twilio::REST::Client.new TWILIO_SID, TWILIO_TOKEN
 
-    to = Phony.formatted(invite.contact.phone_number, 
-                         :format => :international, :spaces => '')
+    to = invite.contact.phone_number
 
     client.account.sms.messages.create(
                                        :from => '+13104398878',

@@ -20,7 +20,7 @@ class User < ActiveRecord::Base
   has_many :friendships, :dependent => :destroy
   has_many :incoming_friendships, :class_name => 'Friendship', :dependent => :destroy, :foreign_key => 'friend_id'
 
-  has_many :invations, :dependent => :destroy
+  has_many :invitations, :dependent => :destroy
 
   serialize :fb_data
   serialize :gpp_data

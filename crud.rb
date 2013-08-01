@@ -157,18 +157,18 @@ post '/' do
   end
 end
 
-post '/invite' do
+post '/invites' do
   invite_params = params[:invite]
   contact_params = params[:contact]
   return invalid_request unless invite_params && contact_params
   return invalid_request unless contact_params[:phone_number]
 
   contact = Contact.find_by_phone_number contact_params[:phone_number]
-  contact = Contact.create!(phone_number: contact_params[:phone_number], enabled: tru) unless contact
+  contact = Contact.create!(phone_number: contact_params[:phone_number], enabled: true) unless contact
 
-  invitation = @current_user.invitations.build(contact_id: contact.id,
-                                               body: invite_params[:body],
-                                               delivered: false)
+  invitation = @user.invitations.build(contact_id: contact.id,
+                                       body: invite_params[:body],
+                                       delivered: false)
   if !invitation.save
     err 400, invitations.errors
   else
