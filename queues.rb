@@ -96,7 +96,7 @@ class UpdateFBFriendsQueue
 end
 
 class InviteSMSQueue
-  @queue = :invite_sms_queue
+  @queue = :invite_sms
   def self.perform i_id
     invite = Invitations.find_by_id(i_id)
     return unless invite
