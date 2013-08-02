@@ -340,7 +340,7 @@ class Gab < ActiveRecord::Base
 
     summary = msg.summary
     unless summary.nil? or summary.empty?
-      self.content_cache = (self.content_cache + ' ' + summary).strip.last(255)
+      self.content_cache = (self.content_cache + ' ' + summary).strip.last(250)
       self.content_summary = summary
     end
 
