@@ -103,11 +103,12 @@ class InviteSMSQueue
     client = Twilio::REST::Client.new TWILIO_SID, TWILIO_TOKEN
 
     to = invite.contact.phone_number
+    body = invite.body + " #{Invitation::CancelMsg}"
 
     client.account.sms.messages.create(
                                        :from => '+13104398878',
                                        :to => to,
-                                       :body => invite.body
+                                       :body => body
                                        )
     invite.delivered = true
     invite.save
