@@ -610,10 +610,10 @@ class Invitation < ActiveRecord::Base
   belongs_to :contact
 
   after_save :send_invitation  
-  
-  validates_length_of :body, :maximum => 181 - CancelMsg.length
 
   CancelMsg = "(REPLY STOP TO CANCEL)"
+  
+  validates_length_of :body, :maximum => 181 - CancelMsg.length
 
   def send_invitation
     if !self.delivered && contact.enabled
