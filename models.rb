@@ -102,9 +102,9 @@ class User < ActiveRecord::Base
 
   def avatar_url
     if !self.fb_id.blank?
-      return 'https://graph.facebook.com/%s/picture' % self.fb_id
+      return 'https://graph.facebook.com/%s/picture?width=90&height=90' % self.fb_id
     elsif !self.gpp_id.blank?
-      return 'http://profiles.google.com/s2/photos/profile/%s?sz=50' % self.gpp_id
+      return 'http://profiles.google.com/s2/photos/profile/%s?sz=90' % self.gpp_id
     else
       return ''
     end
