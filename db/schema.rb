@@ -10,7 +10,7 @@
 #
 # It's strongly recommended to check this file into your version control system.
 
-ActiveRecord::Schema.define(:version => 20130711210752) do
+ActiveRecord::Schema.define(:version => 20130728230612) do
 
   create_table "abuse_reports", :force => true do |t|
     t.integer  "user_id",    :default => 0,  :null => false
@@ -32,6 +32,13 @@ ActiveRecord::Schema.define(:version => 20130711210752) do
 
   add_index "clues", ["gab_id"], :name => "index_clues_on_gab_id"
   add_index "clues", ["user_id"], :name => "index_clues_on_user_id"
+
+  create_table "contacts", :force => true do |t|
+    t.string "phone_number", :null => false
+    t.string "enabled"
+  end
+
+  add_index "contacts", ["phone_number"], :name => "index_contacts_on_phone_number"
 
   create_table "devices", :force => true do |t|
     t.integer  "user_id",      :default => 0,  :null => false
@@ -65,20 +72,19 @@ ActiveRecord::Schema.define(:version => 20130711210752) do
   add_index "friendships", ["user_id"], :name => "index_friendships_on_user_id"
 
   create_table "gabs", :force => true do |t|
-    t.integer  "user_id",           :default => 0,                     :null => false
-    t.integer  "related_gab_id",    :default => 0,                     :null => false
-    t.string   "related_user_name", :default => "",                    :null => false
-    t.string   "related_phone",     :default => "",                    :null => false
-    t.string   "related_avatar",    :default => "",                    :null => false
-    t.string   "content_cache",     :default => "",                    :null => false
-    t.string   "content_summary",   :default => "",                    :null => false
-    t.integer  "unread_count",      :default => 0,                     :null => false
-    t.integer  "total_count",       :default => 0,                     :null => false
-    t.integer  "clue_count",        :default => 0,                     :null => false
-    t.boolean  "sent",              :default => false,                 :null => false
-    t.datetime "last_date",         :default => '1970-01-01 00:00:00', :null => false
-    t.datetime "created_at",                                           :null => false
-    t.datetime "updated_at",                                           :null => false
+    t.integer  "user_id",           :default => 0,     :null => false
+    t.integer  "related_gab_id",    :default => 0,     :null => false
+    t.string   "related_user_name", :default => "",    :null => false
+    t.string   "related_phone",     :default => "",    :null => false
+    t.string   "related_avatar",    :default => "",    :null => false
+    t.string   "content_cache",     :default => "",    :null => false
+    t.string   "content_summary",   :default => "",    :null => false
+    t.integer  "unread_count",      :default => 0,     :null => false
+    t.integer  "total_count",       :default => 0,     :null => false
+    t.integer  "clue_count",        :default => 0,     :null => false
+    t.boolean  "sent",              :default => false, :null => false
+    t.datetime "created_at",                           :null => false
+    t.datetime "updated_at",                           :null => false
   end
 
   add_index "gabs", ["user_id"], :name => "index_gabs_on_user_id"
@@ -89,6 +95,13 @@ ActiveRecord::Schema.define(:version => 20130711210752) do
   end
 
   add_index "images", ["secret"], :name => "index_images_on_secret"
+
+  create_table "invitations", :force => true do |t|
+    t.integer "user_id",    :null => false
+    t.integer "contact_id", :null => false
+    t.string  "body",       :null => false
+    t.boolean "delivered"
+  end
 
   create_table "messages", :force => true do |t|
     t.integer  "gab_id",     :default => 0,     :null => false
