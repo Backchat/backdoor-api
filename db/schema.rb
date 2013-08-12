@@ -10,7 +10,7 @@
 #
 # It's strongly recommended to check this file into your version control system.
 
-ActiveRecord::Schema.define(:version => 20130728155150) do
+ActiveRecord::Schema.define(:version => 20130711210752) do
 
   create_table "abuse_reports", :force => true do |t|
     t.integer  "user_id",    :default => 0,  :null => false
@@ -65,19 +65,20 @@ ActiveRecord::Schema.define(:version => 20130728155150) do
   add_index "friendships", ["user_id"], :name => "index_friendships_on_user_id"
 
   create_table "gabs", :force => true do |t|
-    t.integer  "user_id",           :default => 0,     :null => false
-    t.integer  "related_gab_id",    :default => 0,     :null => false
-    t.string   "related_user_name", :default => "",    :null => false
-    t.string   "related_phone",     :default => "",    :null => false
-    t.string   "related_avatar",    :default => "",    :null => false
-    t.string   "content_cache",     :default => "",    :null => false
-    t.string   "content_summary",   :default => "",    :null => false
-    t.integer  "unread_count",      :default => 0,     :null => false
-    t.integer  "total_count",       :default => 0,     :null => false
-    t.integer  "clue_count",        :default => 0,     :null => false
-    t.boolean  "sent",              :default => false, :null => false
-    t.datetime "created_at",                           :null => false
-    t.datetime "updated_at",                           :null => false
+    t.integer  "user_id",           :default => 0,                     :null => false
+    t.integer  "related_gab_id",    :default => 0,                     :null => false
+    t.string   "related_user_name", :default => "",                    :null => false
+    t.string   "related_phone",     :default => "",                    :null => false
+    t.string   "related_avatar",    :default => "",                    :null => false
+    t.string   "content_cache",     :default => "",                    :null => false
+    t.string   "content_summary",   :default => "",                    :null => false
+    t.integer  "unread_count",      :default => 0,                     :null => false
+    t.integer  "total_count",       :default => 0,                     :null => false
+    t.integer  "clue_count",        :default => 0,                     :null => false
+    t.boolean  "sent",              :default => false,                 :null => false
+    t.datetime "last_date",         :default => '1970-01-01 00:00:00', :null => false
+    t.datetime "created_at",                                           :null => false
+    t.datetime "updated_at",                                           :null => false
   end
 
   add_index "gabs", ["user_id"], :name => "index_gabs_on_user_id"
@@ -95,12 +96,12 @@ ActiveRecord::Schema.define(:version => 20130728155150) do
     t.text     "content",    :default => "",    :null => false
     t.integer  "kind",       :default => 0,     :null => false
     t.string   "secret",     :default => "",    :null => false
+    t.string   "key",        :default => "",    :null => false
     t.boolean  "read",       :default => false, :null => false
     t.boolean  "deleted",    :default => false, :null => false
     t.boolean  "sent",       :default => false, :null => false
     t.datetime "created_at",                    :null => false
     t.datetime "updated_at",                    :null => false
-    t.string   "key",        :default => "",    :null => false
   end
 
   add_index "messages", ["gab_id"], :name => "index_messages_on_gab_id"
@@ -127,20 +128,19 @@ ActiveRecord::Schema.define(:version => 20130728155150) do
   add_index "tokens", ["user_id"], :name => "index_tokens_on_user_id"
 
   create_table "users", :force => true do |t|
-    t.boolean  "autocreated",      :default => false, :null => false
-    t.boolean  "registered",       :default => false, :null => false
-    t.boolean  "fake",             :default => false, :null => false
-    t.boolean  "featured",         :default => false, :null => false
-    t.string   "phone",            :default => "",    :null => false
-    t.string   "email",            :default => "",    :null => false
-    t.string   "gpp_id",           :default => "",    :null => false
-    t.string   "fb_id",            :default => "",    :null => false
-    t.text     "gpp_data",         :default => "",    :null => false
-    t.text     "fb_data",          :default => "",    :null => false
-    t.datetime "created_at",                          :null => false
-    t.datetime "updated_at",                          :null => false
-    t.text     "settings",         :default => "",    :null => false
-    t.boolean  "notified_friends", :default => false
+    t.boolean  "autocreated", :default => false, :null => false
+    t.boolean  "registered",  :default => false, :null => false
+    t.boolean  "fake",        :default => false, :null => false
+    t.boolean  "featured",    :default => false, :null => false
+    t.string   "phone",       :default => "",    :null => false
+    t.string   "email",       :default => "",    :null => false
+    t.string   "gpp_id",      :default => "",    :null => false
+    t.string   "fb_id",       :default => "",    :null => false
+    t.text     "gpp_data",    :default => "",    :null => false
+    t.text     "fb_data",     :default => "",    :null => false
+    t.text     "settings",    :default => "",    :null => false
+    t.datetime "created_at",                     :null => false
+    t.datetime "updated_at",                     :null => false
   end
 
   add_index "users", ["email"], :name => "index_users_on_email"
