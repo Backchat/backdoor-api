@@ -262,7 +262,7 @@ class Friendship < ActiveRecord::Base
       :device_tokens => self.user.devices.map { |x| x.device_token },
       :alert => "%s just joined Backdoor!" % name,
       :sound => 'default',
-      :badge = self.user.unread_messages,
+      :badge => self.user.unread_messages,
       :custom => {
         :kind => APN_KIND_FRIEND_NOTIF,
         :friendship_id => self.id
