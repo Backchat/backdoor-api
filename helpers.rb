@@ -91,3 +91,36 @@ def random_key
   SecureRandom.hex[0..7]
 end
 
+def deliver_apn_hash(hash)
+  pushers = []
+  pushers << Grocer.pusher(
+    certificate:  APN_CERT,
+    passphrase:   '',
+    gateway:      APN_GATEWAY
+  )
+
+  hash = hash.symbolize_keys
+  hash[:device_tokens].each do |device_token|
+    log_hash = {
+
+      :device_token => "%s..." % device_token[0..10],
+      :alert => hash[:alert],
+      :badge => hash[:badge],
+      :custom => hash[:custom]
+    }
+
+    ActiveRecord::Base.logger.info "Delivering apn: #{log_hash}"
+
+    notification = Grocer::Notification.new(
+      device_token: device_token,
+      alert: hash[:alert],
+      badge: hash[:badge],
+      sound: 'default',
+      custom: hash[:custom]
+    )
+
+    pushers.each do |push|
+      push.push(notification)
+    end
+  end
+end
