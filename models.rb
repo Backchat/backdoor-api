@@ -188,25 +188,31 @@ class User < ActiveRecord::Base
     resp = client.get(url, :access_token => token)
     data = JSON.parse(resp.content)
 
-    friends = data['data']
+    return unless data['data'].present?
 
     social_ids = []
+    is_new_user = (self.friendships.count == 0)
 
-    if data['data'].present?
-      data['data'].each do |item|
-        friend = User.find_by_fb_id(item['id'])
-        social_ids << item['id']
-        next if friend.nil?
-        friendship = self.friendships.find_or_initialize_by_friend_id_and_provider_and_social_id(friend.id, Friendship::FACEBOOK_PROVIDER, item['id'])
-        friendship.first_name = item['first_name']
-        friendship.last_name = item['last_name']
-        friendship.save
-        #reverse friendship as well
-        r_friendship = friend.friendships.find_or_initialize_by_friend_id_and_provider_and_social_id(self.id, Friendship::FACEBOOK_PROVIDER, self.fb_id)
-        r_friendship.first_name = self.fb_data['first_name']
-        r_friendship.last_name = self.fb_data['last_name']
-        r_friendship.save
-      end
+    data['data'].each do |item|
+      friend = User.find_by_fb_id(item['id'])
+      social_ids << item['id']
+      next if friend.nil?
+
+      friendship = self.friendships.find_or_initialize_by_friend_id_and_provider_and_social_id(friend.id, Friendship::FACEBOOK_PROVIDER, item['id'])
+      is_new = friendship.new_record?
+      friendship.first_name = item['first_name']
+      friendship.last_name = item['last_name']
+      friendship.save
+      # if i'm a new user, do not notify me about all my friends
+      friendship.enqueue_notification if is_new and !is_new_user
+
+      #reverse friendship as well
+      r_friendship = friend.friendships.find_or_initialize_by_friend_id_and_provider_and_social_id(self.id, Friendship::FACEBOOK_PROVIDER, self.fb_id)
+      is_new = r_friendship.new_record?
+      r_friendship.first_name = self.fb_data['first_name']
+      r_friendship.last_name = self.fb_data['last_name']
+      r_friendship.save
+      r_friendship.enqueue_notification if is_new
     end
 
     #TODO this is expensive, change 
@@ -216,18 +222,11 @@ class User < ActiveRecord::Base
     else
       self.friendships.facebook.where('social_id NOT IN (?)', social_ids).destroy_all
     end
-
-    unless self.notified_friends
-      Resque.enqueue(FriendNotificationQueue, self.id)
-      self.notified_friends = true
-      self.save
-    end
   end
 
   def get_name
     DataHelper.new(self).load_name || ''
   end
-    
 
   def fetch_friends
     self.fetch_fb_friends unless self.fb_id.blank?
@@ -246,35 +245,6 @@ class User < ActiveRecord::Base
     data = ActiveRecord::Base.connection.select_all(sql)
 
     data
-  end
-
-  def notify_friends
-    pushers = MessageDeliveryQueue.build_pushers
-    # FIXME measure maximum name length correctly
-    name = self.get_name[0..50]
-    alert = "%s just joined Backdoor!" % name
-    self.incoming_friendships.each do |friendship|
-      friend = friendship.user
-      friend.devices.each do |device|
-        token = device.device_token
-        ActiveRecord::Base.logger.info 'Delivering friend notification to %s' % token
-        notif = Grocer::Notification.new(
-          alert: alert,
-          device_token: token,
-          sound: 'default',
-          custom: {
-            :kind => APN_KIND_FRIEND_NOTIF,
-            :receiver_email => friend.email,
-            :provider => friendship.provider,
-            :social_id => friendship.social_id
-          }
-        )
-
-        pushers.each do |push|
-          push.push(notif)
-        end
-      end
-    end
   end
 
   before_save do |obj|
@@ -299,6 +269,26 @@ class Friendship < ActiveRecord::Base
   def name
     "#{first_name} #{last_name}"
   end
+
+  def enqueue_notification
+
+    name = self.friend.get_name[0..50]
+
+    hash = {
+      :device_tokens => self.user.devices.map { |x| x.device_token },
+      :alert => "%s just joined Backdoor!" % name,
+      :sound => 'default',
+      :custom => {
+        :kind => APN_KIND_FRIEND_NOTIF,
+        :receiver_email => self.user.email,
+        :social_id => self.social_id
+      }
+    }
+
+    Resque.enqueue(FriendNotificationQueue, hash)
+
+  end
+
 end
 
 class Time
@@ -485,25 +475,6 @@ class Message < ActiveRecord::Base
       }
     }
   end
-
-  def self.deliver_apn_hash pushers, hash
-    hash = hash.symbolize_keys
-    hash[:device_tokens].each do |device_token|
-      ActiveRecord::Base.logger.info "Delivering apn to #{device_token} hash: #{hash}"
-      notification = 
-        Grocer::Notification.new(
-                                 device_token: device_token,
-                                 alert:        hash[:alert],
-                                 badge:        hash[:badge],
-                                 sound:        'default',
-                                 custom:       hash[:custom]
-                                 )
-      
-      pushers.each do |push|
-        push.push(notification)
-      end
-    end
-  end
 end
 
 class Clue < ActiveRecord::Base
@@ -654,28 +625,16 @@ end
 class MessageDeliveryQueue
   @queue = :message_delivery
 
-  def self.build_pushers
-    pushers = []
-    pushers << Grocer.pusher(
-      certificate:  APN_CERT,
-      passphrase:   '',
-      gateway:      APN_GATEWAY
-    )
-    pushers
-  end
-
   def self.perform(hash)
-    Message.deliver_apn_hash(MessageDeliveryQueue.build_pushers, hash)
+    deliver_apn_hash(hash)
   end
 end
 
 class FriendNotificationQueue
   @queue = :friend_notification
 
-  def self.perform(user_id)
-    user = User.find_by_id(user_id)
-    return if user.nil?
-    user.notify_friends
+  def self.perform(hash)
+    deliver_apn_hash(hash)
   end
 end
 
