@@ -103,6 +103,16 @@ class InviteSMSQueue
     client = Twilio::REST::Client.new TWILIO_SID, TWILIO_TOKEN
 
     to = invite.contact.phone_number
+    to = to.tr('^0-9','')
+
+    if to.length == 10 #US
+      #just send it, since twilio assumes US by default
+    else #assume BR
+      #it should be 8 digits. the BR E184 format should be
+      #"+155<digits>" 55 is the area code
+      to = "+155" + to
+    end
+
     body = invite.body + " #{Invitation::CancelMsg}"
 
     client.account.sms.messages.create(
