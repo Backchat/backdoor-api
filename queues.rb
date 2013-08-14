@@ -103,11 +103,28 @@ class InviteSMSQueue
     client = Twilio::REST::Client.new TWILIO_SID, TWILIO_TOKEN
 
     to = invite.contact.phone_number
+    to = to.tr('^0-9','')
+    
+    real_number = nil
+
+    if to.length == 8 #assume local BR number
+      real_number = "+5521" + to
+    elsif to.length == 9 #assume local BR number
+      real_number = "+5511" + to
+    elsif to.starts_with? "021" #long distance BR number
+      rest_of_number = to[3..-1]
+      real_number = "+55" + rest_of_number
+    else 
+      #assume a local US number..
+      real_number = to
+    end
+
     body = invite.body + " #{Invitation::CancelMsg}"
 
+    puts "PHONE: Turning #{to} to #{real_number}"
     client.account.sms.messages.create(
                                        :from => '+13104398878',
-                                       :to => to,
+                                       :to => real_number,
                                        :body => body
                                        )
     invite.delivered = true
