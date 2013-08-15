@@ -28,8 +28,8 @@ SMTP_SETTINGS = {
   :domain         => "mail.gmail.com"
 }
 
-TWILIO_SID = 'AC3a0890f50305fd4b1eccbc2251025ae8'
-TWILIO_TOKEN = '16efa8aa2178da2252a43ada84eea196'
+TWILIO_SID = 'AC5e6a2cc17a45d941252840c6ca7416ef'
+TWILIO_TOKEN = '1346022d42253959d79e47b6c171914f'
 
 if BACKDOOR_ENV == 'debug'
   APN_CERT = File.dirname(__FILE__) + '/misc/backdoor_dev.pem'
