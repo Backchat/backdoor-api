@@ -30,6 +30,7 @@ SMTP_SETTINGS = {
 
 TWILIO_SID = 'AC5e6a2cc17a45d941252840c6ca7416ef'
 TWILIO_TOKEN = '1346022d42253959d79e47b6c171914f'
+TWILIO_NUMBER = '+14248357900'
 
 if BACKDOOR_ENV == 'debug'
   APN_CERT = File.dirname(__FILE__) + '/misc/backdoor_dev.pem'
