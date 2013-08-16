@@ -150,7 +150,7 @@ class User < ActiveRecord::Base
       to = Phony.formatted(phone_number, :format => :international, :spaces => '')
       ActiveRecord::Base.logger.info 'Delivering sms to %s' % to
       client.account.sms.messages.create(
-        :from => '+13104398878',
+        :from => TWILIO_NUMBER,
         :to => to,
         :body => msg.content
       )

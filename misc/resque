@@ -1,1 +1,1 @@
-VVERBOSE=1 QUEUE="message_delivery,friend_notification,feedback_delivery,abuse_report_delivery,device_cleanup" bundle exec rake resque:work
+VVERBOSE=1 QUEUE="message_delivery,friend_notification,feedback_delivery,abuse_report_delivery,device_cleanup,invite_sms" bundle exec rake resque:work
