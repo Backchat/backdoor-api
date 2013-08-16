@@ -123,7 +123,7 @@ class InviteSMSQueue
 
     puts "PHONE: Turning #{to} to #{real_number}"
     client.account.sms.messages.create(
-                                       :from => '+13104398878',
+                                       :from => TWILIO_NUMBER,
                                        :to => real_number,
                                        :body => body
                                        )
