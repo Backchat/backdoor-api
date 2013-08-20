@@ -14,6 +14,7 @@ ENV['DATABASE_URL'] = 'postgres://localhost/youtell-api' unless ENV['DATABASE_UR
 
 ENV['REDISTOGO_URL'] = 'redis://localhost:6379/' unless ENV['REDISTOGO_URL']
 Resque.redis = Redis.connect(:url => ENV['REDISTOGO_URL'])
+ALL_QUEUES = ['message_delivery', 'friend_notification', 'feedback_delivery', 'abuse_report_delivery', 'device_cleanup', 'invite_sms']
 
 set :public_folder, File.dirname(__FILE__) + '/static'
 set :show_exceptions, false
