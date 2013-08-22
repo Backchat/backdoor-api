@@ -100,7 +100,7 @@ post '/gabs/:gab_id/messages' do
   if message.nil?
     return invalid_request
   else
-    ok message
+    ok :message => message.as_json()["message"], :gab => @gab.as_json()["gab"]
   end
 end
 
