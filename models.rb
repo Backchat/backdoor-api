@@ -30,9 +30,10 @@ class User < ActiveRecord::Base
 
   def as_json(opt={})
     {:user => {
-      :new_user => !self.registered,
-      :settings => self.settings,
-      :available_clues => self.available_clues
+        :new_user => !self.registered,
+        :settings => self.settings,
+        :available_clues => self.available_clues,
+        :id => self.id
       }
     }
   end

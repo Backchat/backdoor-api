@@ -60,7 +60,7 @@ post '/login' do
   end
 
   user.save
-  ok user: {new_user: new_user, available_clues: user.available_clues, settings: user.settings}
+  ok user: {new_user: new_user, available_clues: user.available_clues, settings: user.settings, id: user.id}
 end
 
 get '/featured-users' do
