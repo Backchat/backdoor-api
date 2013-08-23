@@ -21,27 +21,42 @@ end
 
 post '/login' do
   access_token = params[:access_token]
-  device_token = params[:device_token]
-  provider = params[:provider]
 
-  return err 400, "invalid request" if access_token.blank? || device_token.blank? || provider.blank? || !(params[:fb_data].present? || params[:gpp_data].present?)
+  return err 400, "invalid request" if access_token.blank? 
 
+  #check to see if the token already exists
   token = Token.find_by_access_token(access_token)
   return ok token.user if token
 
-  fb_data = JSON.parse(params[:fb_data]) unless params[:fb_data].blank?
-  gpp_data = JSON.parse(params[:gpp_data]) unless params[:gpp_data].blank?
+  #if not, then we have either a new user or a user reauthenticating with a new token.
+  provider = params[:provider]
+  return err 400, "invalid request" unless !provider.blank?
 
-  auth = Token.authenticate(access_token, provider, fb_data, gpp_data)
+  auth = Token.authenticate(access_token, provider)
+
   user = auth[0]
   new_user = auth[1]
-  device = Device.my_find_or_create(device_token, user)
 
-  if user.fb_data != fb_data && !fb_data.blank?
-    user.fb_data = fb_data
+  #if this is a old client, we'll send a device_token to register:
+  #if not, then we won't get one:
+  if !params[:device_token].blank?
+    device = Device.my_find_or_create(device_token, user)
   end
-  if user.gpp_data != gpp_data && !gpp_data.blank?
-    user.gpp_data = gpp_data
+
+  #old clients use login to update extended fb/gpp info
+  #new clients do this in POST later
+  unless params[:fb_data].blank?
+    fb_data = JSON.parse(params[:fb_data])
+    if user.fb_data != fb_data && !fb_data.blank?
+      user.fb_data = fb_data
+    end
+  end
+
+  unless params[:gpp_data].blank?
+    gpp_data = JSON.parse(params[:gpp_data])
+    if user.gpp_data != gpp_data && !gpp_data.blank?
+      user.gpp_data = gpp_data
+    end
   end
 
   user.save

@@ -483,13 +483,12 @@ end
 class Token < ActiveRecord::Base
   belongs_to :user
 
-  def self.auth_fb(access_token, fb_data)
+  def self.auth_fb(access_token)
 
     client = HTTPClient.new
     url = 'https://graph.facebook.com/me'
     resp = client.get(url, :access_token => access_token)
     data = JSON.parse(resp.content)
-    puts data.inspect
 
     err 403, 'forbidden' unless data['id']
 
@@ -511,7 +510,7 @@ class Token < ActiveRecord::Base
     { :user => user, :new_user => new_user }
   end
 
-  def self.auth_gpp(access_token, gpp_data)
+  def self.auth_gpp(access_token)
 
     client = HTTPClient.new
     url = 'https://www.googleapis.com/oauth2/v1/tokeninfo'
@@ -543,11 +542,11 @@ class Token < ActiveRecord::Base
     return token.nil? ? nil : token
   end
 
-  def self.authenticate(access_token, provider, fb_data, gpp_data)
+  def self.authenticate(access_token, provider)
     if provider == 'facebook'
-      resp = self.auth_fb(access_token, fb_data)
+      resp = self.auth_fb(access_token)
     elsif provider == 'gpp'
-      resp = self.auth_gpp(access_token, gpp_data)
+      resp = self.auth_gpp(access_token)
     else
       err 403, 'forbidden'
     end

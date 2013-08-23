@@ -175,6 +175,13 @@ post '/invites' do
     ok 
   end
 end
+
+post '/devices' do
+  #register a new device:
+  return invalid_request if params[:device_token].blank?
+  device = Device.my_find_or_create(device_token, @user)
+  ok
+end
                                 
 # users in actions
 # featured-users 
