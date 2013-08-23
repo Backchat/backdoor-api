@@ -18,6 +18,20 @@ namespace :resque do
     Resque.redis.del 'queue:feedback_delivery'
     Resque.redis.del 'queue:device_cleanup'
   end
+
+  task :dump_failed do
+    data = Resque::Failure.all(0, 999999)
+    data = data.select { |item| ALL_QUEUES.include? item["queue"] }
+    text = JSON.pretty_generate(data)
+    puts text
+  end
+
+  task :clear_failed do
+    ALL_QUEUES.each do |queue|
+      Resque::Failure.remove_queue(queue)
+    end
+  end
+
 end
 
 namespace :db do
