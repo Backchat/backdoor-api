@@ -89,6 +89,7 @@ CLUES_REVENUE_003 = 210
 CLUE_REASONS = ['fbshare', 'fblike', 'fbinvite', 'tweet', 'gppshare']
 
 APN_KIND_FRIEND_NOTIF = 1
+APN_KIND_MSG_NOTIF = 0
 
 DB_TIMESTAMP = '2013-06-18T21:05:51+00:00'
 

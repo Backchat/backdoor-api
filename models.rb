@@ -456,7 +456,8 @@ class Message < ActiveRecord::Base
       :alert => alert,
       :badge =>  user.unread_messages,
       :custom => { 
-        :gab_id => gab.id
+        :gab_id => gab.id,
+        :kind => APN_KIND_MSG_NOTIF
       }
     }
   end
