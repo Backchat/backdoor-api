@@ -69,19 +69,21 @@ get '/gabs/:gab_id' do
 end
 
 post '/gabs/:gab_id' do
-  @gab.related_user_name = params[:related_user_name] if params[:related_user_name].present?
-  @gab.unread_count = params[:unread_count] if params[:unread_count].present?
-
-  if @gab.changed?
-    @gab.save
-    hsh = @gab.as_json
-    if params[:total_unread_count].present?
-      hsh[:total_unread_count] = @user.unread_messages
-    end
-    ok hsh
-  else
-    return invalid_request
+  if params[:unread_count].present?
+    @gab.update_column(:unread_count, params[:unread_count])
   end
+
+  if params[:related_user_name].present?
+    @gab.related_user_name = params[:related_user_name] 
+    @gab.save
+  end
+
+  hsh = @gab.as_json
+  if params[:total_unread_count].present?
+    hsh[:total_unread_count] = @user.unread_messages
+  end
+
+  ok hsh
 end
 
 delete '/gabs/:gab_id' do
