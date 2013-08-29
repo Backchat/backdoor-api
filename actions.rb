@@ -4,7 +4,7 @@ before do
 
   access_token = params[:access_token]
 
-  err 400, 'invalid request' if access_token.nil?
+  err 401, 'invalid token' if access_token.nil?
 
   blitz_token = params[:blitz_token]
   @blitz_mode = (blitz_token == BLITZ_TOKEN)
@@ -12,7 +12,7 @@ before do
   token = Token.token_authenticate(access_token)
 
   if token.nil?
-    return err 400, "invalid request"
+    return err 401, 'invalid token'
   else
     @user = token.user
     @new_user = false
