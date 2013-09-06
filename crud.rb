@@ -163,19 +163,26 @@ post '/invites' do
   invite_params = params[:invite]
   contact_params = params[:contact]
   return invalid_request unless invite_params && contact_params
-  return invalid_request unless contact_params[:phone_number]
+  return invalid_request unless contact_params[:phone_number] || contact_params[:phone_numbers]
 
-  contact = Contact.find_by_phone_number contact_params[:phone_number]
-  contact = Contact.create!(phone_number: contact_params[:phone_number], enabled: true) unless contact
+  contacts = [contact_params[:phone_number]]
+  contacts.concat contact_params[:phone_numbers] if contact_params[:phone_numbers]
+  contacts.compact!
 
-  invitation = @user.invitations.build(contact_id: contact.id,
-                                       body: invite_params[:body],
-                                       delivered: false)
-  if !invitation.save
-    err 400, invitations.errors
-  else
-    ok 
+  contacts.each do |number|
+    contact = Contact.find_by_phone_number number
+    contact = Contact.create!(phone_number: number, enabled: true) unless contact
+
+    invitation = @user.invitations.build(contact_id: contact.id,
+                                         body: invite_params[:body],
+                                         delivered: false)
+    if !invitation.save
+      err 400, invitations.errors
+      return
+    end
   end
+
+  ok 
 end
 
 post '/devices' do
