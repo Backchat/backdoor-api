@@ -7,7 +7,7 @@ def invalid_request
 end
 
 get '/gabs' do
-  ok :gabs => @user.gabs.all.map{|g| g.as_json()["gab"]}
+  ok :gabs => @user.gabs.where("total_count > 0").all.map{|g| g.as_json()["gab"]}
 end
 
 post '/gabs' do
@@ -106,8 +106,17 @@ post '/gabs/:gab_id/messages' do
   end
 end
 
+get '/gabs/:gab_id/clues' do
+  #TODO test this
+  hsh = {clues: @gab.clues.revealed.all.map {|c| c.as_json()["clue"]}}
+  hsh[:available_clues] = @user.available_clues
+  ok hsh
+end
+
+#for back compat...
 get '/gabs/:gab_id/clues/' do
   #TODO test this
+  #TODO merge this
   hsh = {clues: @gab.clues.revealed.all.map {|c| c.as_json()["clue"]}}
   hsh[:available_clues] = @user.available_clues
   ok hsh
@@ -120,7 +129,9 @@ post '/gabs/:gab_id/clues/request/:number' do
   if clue.reveal.nil?
     err 400, "request failed"
   else
-    ok clue
+    hsh = clue.as_json
+    hsh[:available_clues] = @user.available_clues
+    ok hsh
   end
 end
 
@@ -148,6 +159,11 @@ post '/' do
   #update fb_data, gpp_data
   fb_data = JSON.parse(params[:fb_data]) unless params[:fb_data].blank?
   gpp_data = JSON.parse(params[:gpp_data]) unless params[:gpp_data].blank?
+  if params[:settings]
+    @user.settings["message_preview"] = params[:settings][:message_preview]
+    @user.save
+    return ok
+  end
 
   if !fb_data && !gpp_data
     return invalid_request
@@ -187,8 +203,11 @@ end
 
 post '/devices' do
   #register a new device:
-  return invalid_request if params[:device_token].blank?
-  device = Device.my_find_or_create(params[:device_token], @user)
+  return invalid_request if params[:device_token].blank? 
+  kind = params[:kind]
+  kind = Device::APPLE if kind.blank? #back-compat: assume APN unless otherwise
+  kind.upcase!
+  device = Device.my_find_or_create(params[:device_token], kind, @user)
   ok
 end
                                 

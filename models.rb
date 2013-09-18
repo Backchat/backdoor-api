@@ -6,7 +6,6 @@ require 'resque'
 require 'httpclient'
 require 'twilio-ruby'
 require 'grocer'
-require 'httpclient'
 require 'phony'
 
 class User < ActiveRecord::Base
@@ -33,7 +32,8 @@ class User < ActiveRecord::Base
         :new_user => !self.registered,
         :settings => self.settings,
         :available_clues => self.available_clues,
-        :id => self.id
+        :id => self.id,
+        :full_name => self.get_name #perf TODO
       }
     }
   end
@@ -70,10 +70,18 @@ class User < ActiveRecord::Base
 
       if !user.fb_id.blank?
         item = {
+          #old
           :type => 'facebook',
           :value => user.fb_id,
           :name => user.fb_data['name'] || '',
-          :featured_id => user.id
+
+          #new
+          :first_name => user.fb_data['first_name'],
+          :last_name => user.fb_data['last_name'],
+          :featured_id => user.id,
+          :social_id => user.fb_id,
+          :provider => 'facebook',
+          :id => 0 #TODOuser.id          
         }
       elsif !user.gpp_id.blank?
         item = {
@@ -256,17 +264,25 @@ class Friendship < ActiveRecord::Base
   end
 
   def enqueue_new_friend_notification
-
     name = self.friend.get_name[0..50]
 
+    message =  "%s just joined Backdoor!"
+
     hash = {
-      :device_tokens => self.user.devices.map { |x| x.device_token },
-      :alert => "%s just joined Backdoor!" % name,
-      :sound => 'default',
-      :badge => self.user.unread_messages,
-      :custom => {
-        :kind => APN_KIND_FRIEND_NOTIF,
-        :friendship_id => self.id
+      apn_device_tokens: self.user.devices.where(kind: Device::APPLE).map {|d| d.device_token},
+      gcm_device_tokens: self.user.devices.where(kind: Device::GOOGLE).map {|d| d.device_token},
+
+      apn_hash: {
+        custom: {friendship_id: self.id, kind: KIND_FRIEND_NOTIF},
+        alert: message,
+        badge: self.user.unread_messages,
+      },
+
+      google_hash: {
+        message: message,
+        unread_count: self.user.unread_messages,
+        friendship_id: self.id,
+        kind: KIND_FRIEND_NOTIF,
       }
     }
 
@@ -356,13 +372,13 @@ class Gab < ActiveRecord::Base
     summary = msg.summary
     unless summary.nil? or summary.empty?
       self.content_cache = (self.content_cache + ' ' + summary).strip.last(250)
-      self.content_summary = summary
+      self.content_summary = summary.last(50)
     end
 
     self.save
 
     if !self.user.fake && self.user.registered && self.user.fb_id != FACTORY_USER_UID
-      msg_obj = msg.build_apn_hash
+      msg_obj = msg.build_notification_hash
       Resque.enqueue(MessageDeliveryQueue, msg_obj) unless sent
     end
 
@@ -435,7 +451,7 @@ class Message < ActiveRecord::Base
     return content
   end
 
-  def build_apn_hash
+  def build_notification_hash
     sender = gab.related_user_name
     sender = 'Someone' if sender.blank?
 
@@ -447,17 +463,24 @@ class Message < ActiveRecord::Base
       alert = "%s sent you a Backdoor message." % sender
     end
 
-    if alert.length > 80
-      alert = alert[0..76] + "..."
+    short_message = alert
+    if short_message.length > 80
+      short_message = short_message[0..76] + "..."
     end
-
+    
     {
-      :device_tokens => user.devices.map {|d| d.device_token},
-      :alert => alert,
-      :badge =>  user.unread_messages,
-      :custom => { 
-        :gab_id => gab.id,
-        :kind => APN_KIND_MSG_NOTIF
+      apn_device_tokens: user.devices.where(kind: Device::APPLE).map {|d| d.device_token},
+      gcm_device_tokens: user.devices.where(kind: Device::GOOGLE).map {|d| d.device_token},      
+      apn_hash: {
+        custom: {gab_id: gab.id, kind: KIND_MSG_NOTIF},
+        alert: short_message,
+        badge: user.unread_messages,
+      },
+      google_hash: {
+        message: alert,
+        unread_count: user.unread_messages,
+        gab_id: gab.id,
+        kind: KIND_MSG_NOTIF
       }
     }
   end
@@ -509,7 +532,7 @@ class Token < ActiveRecord::Base
       :registered => true
     )
 
-    { :user => user, :new_user => new_user }
+    { :user => user, :new_user => new_user, :full_name => data['name'] }
   end
 
   def self.auth_gpp(access_token)
@@ -565,11 +588,19 @@ end
 class Device < ActiveRecord::Base
   belongs_to :user
 
-  def self.my_find_or_create(device_token, user)
+  APPLE = "APPLE"
+  GOOGLE = "GOOGLE"
+
+  def self.my_find_or_create(device_token, kind, user)
     return if device_token.nil?
 
-    device = Device.find_or_create_by_device_token(device_token)
-    device.user = user
+    device = Device.find_by_device_token_and_kind(device_token, kind)
+    if device.nil?
+      device = Device.new(device_token: device_token, kind: kind, user_id: user.id)
+    else
+      device.user = user
+    end
+
     device.save
 
     device

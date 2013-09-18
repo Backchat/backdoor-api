@@ -6,12 +6,15 @@ before do
 
   err 401, 'invalid token' if access_token.nil?
 
+  access_token = access_token.gsub('%2F', '/')
+
   blitz_token = params[:blitz_token]
   @blitz_mode = (blitz_token == BLITZ_TOKEN)
 
   token = Token.token_authenticate(access_token)
 
   if token.nil?
+    puts "bad token #{access_token}"
     return err 401, 'invalid token'
   else
     @user = token.user
@@ -60,7 +63,9 @@ post '/login' do
   end
 
   user.save
-  ok user: {new_user: new_user, available_clues: user.available_clues, settings: user.settings, id: user.id}
+
+  name = user.get_name #TODO perf
+  ok user: {new_user: new_user, available_clues: user.available_clues, settings: user.settings, id: user.id, full_name: name}
 end
 
 get '/featured-users' do
@@ -68,8 +73,36 @@ get '/featured-users' do
 end
 
 post '/buy-clues' do
-  receipt = params[:receipt]
+  if params[:receiptgoogle].present?
+    data = JSON.parse(params[:receiptgoogle])
+    transaction_id = "#{data["developerPayload"]}-#{data["orderId"]}-#{data["purchaseToken"]}"
+    puts "google-receipt: #{data}" # {"orderId"=>"12999763169054705758.1346662564224406", "packageName"=>"com.youtell.backdoor", "productId"=>"clue_3", "purchaseTime"=>1383960854164, "purchaseState"=>0, "developerPayload"=>"44", "purchaseToken"=>"qlkcoebaojwfcnahkfehelob.AO-J1Oz6tnyiJxQneNOrYgnjLP75vrjJUrtC8LqdeOGEE9Vt-zw4e97JcxoKHmBkHssn0zcPEfglrnw8COBBQwCI5v3JO4DMNEDuDtV_yILJ71PHXgyPfyU"}
 
+    #TODO merge with apple code
+    products = {
+      'clue_3' => CLUES_001,
+      'clue_9' => CLUES_002,
+      'clue_27' => CLUES_003
+    }
+
+    productId = data["productId"]
+    product = products[productId]
+
+    return err 402, 'invalid product' unless product
+
+    pur = Purchase.find_or_create_by_transaction_id(transaction_id)
+
+    return err 403, 'invalid receipt' if pur.user.present? && pur.user_id != @user.id
+    
+    pur.update_attributes(:user => @user, :clues => product)
+
+    ok :available_clues => @user.available_clues
+  else
+    return do_apple_receipt
+  end
+end
+
+def do_apple_receipt
   data = { 'receipt-data' => receipt }.to_json
   url = RECEIPT_VERIFY_URL
   client = HTTPClient.new

@@ -41,6 +41,7 @@ if BACKDOOR_ENV == 'debug'
   FACEBOOK_APP_SECRET = 'ccf194f1fb15d43e32ff24f705e14a77'
   FACEBOOK_APP_ID = '550948541621423'
   AIRBRAKE_TOKEN = '3bd6607eacd01e5e4376e2115e700540'
+  GCM_SECRET_KEY = 'AIzaSyCwFbhue8RtpcrxkxkEmXMGsoeCBzrFWHU'
 elsif BACKDOOR_ENV == 'stage'
   APN_CERT = File.dirname(__FILE__) + '/misc/backdoor_stage.pem'
   APN_GATEWAY= 'gateway.push.apple.com'
@@ -49,6 +50,7 @@ elsif BACKDOOR_ENV == 'stage'
   FACEBOOK_APP_SECRET = 'b4c85880f9d0e30f2e192c51a7871095'
   FACEBOOK_APP_ID = '489124394513672'
   AIRBRAKE_TOKEN = '3bd6607eacd01e5e4376e2115e700540'
+  GCM_SECRET_KEY = 'AIzaSyCwFbhue8RtpcrxkxkEmXMGsoeCBzrFWHU'
 elsif BACKDOOR_ENV == 'release'
   APN_CERT = File.dirname(__FILE__) + '/misc/cl_prod.pem'
   APN_GATEWAY = 'gateway.push.apple.com'
@@ -88,8 +90,8 @@ CLUES_REVENUE_003 = 210
 
 CLUE_REASONS = ['fbshare', 'fblike', 'fbinvite', 'tweet', 'gppshare']
 
-APN_KIND_FRIEND_NOTIF = 1
-APN_KIND_MSG_NOTIF = 0
+KIND_FRIEND_NOTIF = 1
+KIND_MSG_NOTIF = 0
 
 DB_TIMESTAMP = '2013-06-18T21:05:51+00:00'
 

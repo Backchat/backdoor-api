@@ -267,8 +267,10 @@ class DataHelper
     #removed age - [:gender, :location, :work, :school, :age].each do |key|
     [:gender, :location, :work, :school].each do |key|
       if !data[key].blank?
+        display = data[key]
         if key == :gender
           file = data[key]
+          display = display.upcase
         elsif key == :school
           file = 'school_2'
         elsif key == :location
@@ -282,7 +284,7 @@ class DataHelper
         #end
 
         url = '%sclue_%s@2x.png' % [BASE_URL, file]
-        avail_clues << [key, '%s|%s' % [url, data[key]]]
+        avail_clues << [key, '%s|%s' % [url, display]]
       end
     end
 

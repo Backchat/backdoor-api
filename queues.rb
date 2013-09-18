@@ -1,8 +1,31 @@
+class NotificationQueue
+  def self.perform(hash)
+    pusher = Grocer.pusher(
+                           certificate:  APN_CERT,
+                           passphrase:   '',
+                           gateway:      APN_GATEWAY
+                           )
+
+    ActiveRecord::Base.logger.info "#{hash}"
+    apn_final_hash = hash["apn_hash"].merge({"sound" => 'default'})
+    
+    hash["apn_device_tokens"].each do |token|
+      notification = Grocer::Notification.new(apn_final_hash.merge({"device_token" => token}))
+      pusher.push(notification)
+    end      
+
+    if hash["gcm_device_tokens"].present?
+      gcm_pusher = GCM.new(GCM_SECRET_KEY)
+      gcm_pusher.push hash["gcm_device_tokens"], hash["google_hash"]
+      gcm_pusher.close
+    end
+  end
+end
+
 class MessageDeliveryQueue
   @queue = :message_delivery
-
   def self.perform(hash)
-    deliver_apn_hash(hash)
+    NotificationQueue.perform hash
   end
 end
 
@@ -10,7 +33,7 @@ class FriendNotificationQueue
   @queue = :friend_notification
 
   def self.perform(hash)
-    deliver_apn_hash(hash)
+    NotificationQueue.perform(hash)
   end
 end
 
