@@ -169,18 +169,7 @@ post '/invites' do
   contacts.concat contact_params[:phone_numbers] if contact_params[:phone_numbers]
   contacts.compact!
 
-  contacts.each do |number|
-    contact = Contact.find_by_phone_number number
-    contact = Contact.create!(phone_number: number, enabled: true) unless contact
-
-    invitation = @user.invitations.build(contact_id: contact.id,
-                                         body: invite_params[:body],
-                                         delivered: false)
-    if !invitation.save
-      err 400, invitations.errors
-      return
-    end
-  end
+  Resque.enqueue(InviteSMSParseQueue, contacts, invite_params[:body], @user.id)
 
   ok 
 end
