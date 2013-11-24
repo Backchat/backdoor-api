@@ -648,7 +648,7 @@ class Invitation < ActiveRecord::Base
   validates_length_of :body, :maximum => 181 - CancelMsg.length
 
   def send_invitation
-    if !self.delivered && contact.enabled
+    if !self.delivered && contact.enabled == "t" #urgh, fix this later
       Resque.enqueue(InviteSMSQueue, self.id)
     end
   end

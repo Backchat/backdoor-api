@@ -118,8 +118,27 @@ class UpdateFBFriendsQueue
   end
 end
 
+class InviteSMSParseQueue
+  @queue = :invite_sms_parse
+  
+  def self.perform contacts, body, user_id
+    user = User.find_by_id(user_id)
+    return if user.nil?
+    contacts.each do |number|
+      contact = Contact.find_by_phone_number number
+      contact = Contact.create!(phone_number: number, enabled: true) unless contact
+
+      invitation = user.invitations.build(contact_id: contact.id,
+                                           body: body,
+                                           delivered: false)
+      invitation.save
+    end
+  end
+end
+
 class InviteSMSQueue
   @queue = :invite_sms
+  
   def self.perform i_id
     invite = Invitation.find_by_id(i_id)
     return unless invite
