@@ -81,7 +81,6 @@ class User < ActiveRecord::Base
           :featured_id => user.id,
           :social_id => user.fb_id,
           :provider => 'facebook',
-          :id => 0 #TODOuser.id          
         }
       elsif !user.gpp_id.blank?
         item = {

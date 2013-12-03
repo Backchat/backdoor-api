@@ -84,7 +84,7 @@ class DataHelper
     fb = @user.fb_data['education']
     ret = { :current => [], :all => [] }
 
-    return ret if fb.nil?
+    return ret if fb.nil? || fb.empty?
 
     for item in fb.reverse
       name = item['school']['name']
@@ -141,7 +141,7 @@ class DataHelper
 
     ret = []
 
-    return ret if fb.nil?
+    return ret if fb.nil? || fb.empty?
 
     for item in fb
       ret << '%s|%s' % ['https://graph.facebook.com/%s/picture?width=120&height=120' % item['id'], item['name']]
@@ -155,7 +155,7 @@ class DataHelper
 
     ret = []
 
-    return ret if fb.nil?
+    return ret if fb.nil? || fb.empty?
 
     for item in fb
       ret << item['name']
@@ -261,7 +261,12 @@ class DataHelper
 
     avail_count = CLUES_MAX
 
-    avail_likes = data[:likes].shuffle
+    if data[:likes].nil? || data[:likes].empty?
+      avail_likes = []
+    else
+      avail_likes = data[:likes].shuffle 
+    end
+
     avail_clues = []
     
     #removed age - [:gender, :location, :work, :school, :age].each do |key|
