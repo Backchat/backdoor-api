@@ -65,7 +65,7 @@ class User < ActiveRecord::Base
 
   def self.dump_featured(current_user)
     ret = []
-    User.where(:featured => true).each do |user|
+    User.where(:featured => true).each_with_index do |user, count|
       next if user.id == current_user.id
 
       if !user.fb_id.blank?
@@ -81,13 +81,18 @@ class User < ActiveRecord::Base
           :featured_id => user.id,
           :social_id => user.fb_id,
           :provider => 'facebook',
+          :id => -count
         }
       elsif !user.gpp_id.blank?
         item = {
           :type => 'gpp',
           :value => user.gpp_id,
           :name => user.gpp_data['displayName'] || '',
-          :featured_id => user.id
+
+          #new
+          :featured_id => user.id,
+          :provider => 'gpp',
+          :id => -count
         }
       else
         next
