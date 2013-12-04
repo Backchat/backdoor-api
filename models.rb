@@ -81,7 +81,7 @@ class User < ActiveRecord::Base
           :featured_id => user.id,
           :social_id => user.fb_id,
           :provider => 'facebook',
-          :id => -count
+          :id => -(count + 1)
         }
       elsif !user.gpp_id.blank?
         item = {
@@ -92,7 +92,7 @@ class User < ActiveRecord::Base
           #new
           :featured_id => user.id,
           :provider => 'gpp',
-          :id => -count
+          :id => -(count + 1)
         }
       else
         next
