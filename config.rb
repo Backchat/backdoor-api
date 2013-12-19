@@ -41,7 +41,7 @@ if BACKDOOR_ENV == 'debug'
   FACEBOOK_APP_SECRET = 'ccf194f1fb15d43e32ff24f705e14a77'
   FACEBOOK_APP_ID = '550948541621423'
   AIRBRAKE_TOKEN = '3bd6607eacd01e5e4376e2115e700540'
-  GCM_SECRET_KEY = 'AIzaSyCwFbhue8RtpcrxkxkEmXMGsoeCBzrFWHU'
+  GCM_SECRET_KEY = 'AIzaSyC9cnxNV-V8qOHTLxyxEBSEtzTss1stmSo'
 elsif BACKDOOR_ENV == 'stage'
   APN_CERT = File.dirname(__FILE__) + '/misc/backdoor_stage.pem'
   APN_GATEWAY= 'gateway.push.apple.com'
@@ -50,7 +50,7 @@ elsif BACKDOOR_ENV == 'stage'
   FACEBOOK_APP_SECRET = 'b4c85880f9d0e30f2e192c51a7871095'
   FACEBOOK_APP_ID = '489124394513672'
   AIRBRAKE_TOKEN = '3bd6607eacd01e5e4376e2115e700540'
-  GCM_SECRET_KEY = 'AIzaSyCwFbhue8RtpcrxkxkEmXMGsoeCBzrFWHU'
+  GCM_SECRET_KEY = 'AIzaSyC9cnxNV-V8qOHTLxyxEBSEtzTss1stmSo'
 elsif BACKDOOR_ENV == 'release'
   APN_CERT = File.dirname(__FILE__) + '/misc/cl_prod.pem'
   APN_GATEWAY = 'gateway.push.apple.com'
@@ -59,12 +59,13 @@ elsif BACKDOOR_ENV == 'release'
   FACEBOOK_APP_SECRET = 'e40b47d88cca1ab20012e85c21da74bb'
   FACEBOOK_APP_ID = '122753474571987'
   AIRBRAKE_TOKEN = 'b759ebcaee4ac821de8eb104033079d7'
+  GCM_SECRET_KEY = 'AIzaSyDpxoPG1K-iLvErrxQ_TsvYts3blmFTKeE'
 end
 
 BLITZ_TOKEN = '36a9c080ff6fdce0e32c66c3eb3edd9e'
 
-FEEDBACK_EMAIL = 'abuse@backdoorapp.com'
-ABUSE_REPORT_EMAIL = 'abuse@backdoorapp.com'
+FEEDBACK_EMAIL = 'abuse@getbackchat.com'
+ABUSE_REPORT_EMAIL = 'abuse@getbackchat.com'
 
 MESSAGE_KIND_TEXT = 0
 MESSAGE_KIND_PHOTO = 1
