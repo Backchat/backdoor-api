@@ -73,11 +73,11 @@ class User < ActiveRecord::Base
           #old
           :type => 'facebook',
           :value => user.fb_id,
-          :name => user.fb_data['name'] || '',
+          :name => user.get_name,
 
           #new
-          :first_name => user.fb_data['first_name'],
-          :last_name => user.fb_data['last_name'],
+          :first_name => user.first_name,
+          :last_name => user.last_name,
           :featured_id => user.id,
           :social_id => user.fb_id,
           :provider => 'facebook',
@@ -87,10 +87,14 @@ class User < ActiveRecord::Base
         item = {
           :type => 'gpp',
           :value => user.gpp_id,
-          :name => user.gpp_data['displayName'] || '',
+          :name => user.get_name,
 
           #new
+          #new
+          :first_name => user.first_name,
+          :last_name => user.last_name,
           :featured_id => user.id,
+          :social_id => user.gpp_id,
           :provider => 'gpp',
           :id => -(count + 1)
         }
@@ -174,7 +178,7 @@ class User < ActiveRecord::Base
     end
   end
 
-  def fetch_fb_friends
+  def fetch_fb_friends(is_new)
     client = HTTPClient.new
 
     url = 'https://graph.facebook.com/oauth/access_token'
@@ -188,28 +192,14 @@ class User < ActiveRecord::Base
     return unless data['data'].present?
 
     social_ids = []
-    is_new_user = (self.friendships.count == 0)
 
     data['data'].each do |item|
+      next unless item['id']
       friend = User.find_by_fb_id(item['id'])
       social_ids << item['id']
       next if friend.nil?
-
-      friendship = self.friendships.find_or_initialize_by_friend_id_and_provider_and_social_id(friend.id, Friendship::FACEBOOK_PROVIDER, item['id'])
-      is_new = friendship.new_record?
-      friendship.first_name = item['first_name'] || ''
-      friendship.last_name = item['last_name'] || ''
-      friendship.save
-      # if i'm a new user, do not notify me about all my friends
-      friendship.enqueue_new_friend_notification if is_new and !is_new_user
-
-      #reverse friendship as well
-      r_friendship = friend.friendships.find_or_initialize_by_friend_id_and_provider_and_social_id(self.id, Friendship::FACEBOOK_PROVIDER, self.fb_id)
-      is_new = r_friendship.new_record?
-      r_friendship.first_name = self.fb_data['first_name'] || ''
-      r_friendship.last_name = self.fb_data['last_name'] || ''
-      r_friendship.save
-      r_friendship.enqueue_new_friend_notification if is_new
+      
+      Friendship.generate_friendship self, friend, self.fb_id, friend.fb_id, FACEBOOK_PROVIDER
     end
 
     #TODO this is expensive, change 
@@ -221,19 +211,74 @@ class User < ActiveRecord::Base
     end
   end
 
-  def get_name
-    DataHelper.new(self).load_name || ''
-  end
+  def fetch_gpp_friends(valid_access_token, is_new)
+    client = HTTPClient.new
 
-  def fetch_friends
-    self.fetch_fb_friends unless self.fb_id.blank?
-  end
+    url = 'https://www.googleapis.com/plus/v1/people/me/people/visible'
+    resp = client.get(url, :access_token => valid_access_token)
+    data = JSON.parse(resp.content)
+    return unless data['items'].present?
+    items = data['items']
 
-  def get_friends
-    if self.friendships.count == 0
-      self.fetch_friends
+    social_ids = []
+    
+    items.each do |item|
+      gpp_id = item['id']
+      next unless gpp_id
+      friend = User.find_by_gpp_id(gpp_id)
+      social_ids << gpp_id
+      next unless friend
+
+      Friendship.generate_friendship self, friend, self.gpp_id, friend.gpp_id, GPP_PROVIDER, is_new
     end
 
+    if social_ids.empty?
+      self.friendships.gpp.destroy_all
+    else
+      #TODO eexepsnvie
+      self.friendships.gpp.where('social_id NOT IN (?)', social_ids).destroy_all
+    end
+    
+  end
+
+  def get_name
+    "#{first_name} #{last_name}"
+  end
+
+  def displayNameParts
+    if gpp_data && gpp_data['displayName'] 
+      parts = gpp_data['displayName'].split
+      if parts.length >= 2
+        return parts
+      end
+    end
+    
+    ['', '']
+  end
+
+  def first_name
+    if fb_data
+      name = fb_data['first_name'] 
+    end
+    if gpp_data
+      name = gpp_data['firstName'] 
+      displayNameParts.first unless name
+    end
+    name || ''
+  end
+
+  def last_name
+    if fb_data
+      name = fb_data['last_name'] 
+    end
+    if gpp_data
+      name = gpp_data['lastName'] 
+      displayNameParts.last unless name
+    end
+    name || ''
+  end    
+
+  def get_friends
     sql = Friendship
       .select([:provider, :social_id, :first_name, :last_name])
       .where('user_id = ?', self.id)
@@ -256,8 +301,10 @@ class Friendship < ActiveRecord::Base
   belongs_to :friend, :class_name => "User"
 
   FACEBOOK_PROVIDER = "facebook"
+  GPP_PROVIDER = "gpp"
 
   scope :facebook, -> {where(provider: FACEBOOK_PROVIDER)}
+  scope :gpp, -> {where(provider: GPP_PROVIDER)}
 
   def as_json(opt={})
     super(:only => [:id, :user_id, :friend_id, :social_id, :provider, :first_name, :last_name])
@@ -267,10 +314,32 @@ class Friendship < ActiveRecord::Base
     "#{first_name} #{last_name}"
   end
 
-  def enqueue_new_friend_notification
-    name = self.friend.get_name[0..50]
+  class << self
+    def generate_friendship user_1, user_2, user_1_id, user_2_id, kind, new
+      f_1_2 = user_1.find_or_initialize_by_friend_id_and_provider_and_social_id(user_2.id,
+                                                                                kind,
+                                                                                user_2_id)
 
-    message =  "%s just joined Backdoor!"
+      f_1_2_new = f_1_2.new_record? && !new
+      f_1_2.first_name = user_2.first_name
+      f_1_2.last_name = user_2.last_name
+      f_1_2.save
+
+      f_2_1 = user_2.find_or_initialize_by_friend_id_and_provider_and_social_id(user_1.id, 
+                                                                                kind,
+                                                                                user_1_id)
+      f_2_1_new = f_2_1.new_record?
+      f_2_1.first_name = user_1.first_name
+      f_2_1.last_name = user_1.last_name
+      f_2_1.save
+
+      f_1_2.enqueue_new_friend_notification if f_1_2_new
+      f_2_1.enqueue_new_friend_notification if f_2_1_new
+    end      
+  end
+                                                                        
+  def enqueue_new_friend_notification
+    message =  "#{first_name} #{last_name} just joined Backdoor!"
 
     hash = {
       apn_device_tokens: self.user.devices.where(kind: Device::APPLE).map {|d| d.device_token},
@@ -574,8 +643,16 @@ class Token < ActiveRecord::Base
   def self.authenticate(access_token, provider)
     if provider == 'facebook'
       resp = self.auth_fb(access_token)
+      if resp[:new_user]
+        #get friendships for signup first time
+        Resque.enqueue(UpdateFriendsQueue, resp[:user].id, nil,
+                       true, FACEBOOK_PROVIDER)
+      end
     elsif provider == 'gpp'
       resp = self.auth_gpp(access_token)
+      #get gpp friendships every time
+      Resque.enqueue(UpdateFriendsQueue, resp[:user].id, access_token,
+                     resp[:new_user], GPP_PROVIDER)
     else
       err 403, 'forbidden'
     end

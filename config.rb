@@ -60,6 +60,7 @@ elsif BACKDOOR_ENV == 'release'
   FACEBOOK_APP_ID = '122753474571987'
   AIRBRAKE_TOKEN = 'b759ebcaee4ac821de8eb104033079d7'
   GCM_SECRET_KEY = 'AIzaSyDpxoPG1K-iLvErrxQ_TsvYts3blmFTKeE'
+
 end
 
 BLITZ_TOKEN = '36a9c080ff6fdce0e32c66c3eb3edd9e'

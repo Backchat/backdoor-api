@@ -109,12 +109,17 @@ class AbuseReportDeliveryQueue
   end
 end
 
-class UpdateFBFriendsQueue
-  @queue = :update_fb_friends
-  def self.perform u_id
-    user = User.find_by_fb_id(u_id)
+class UpdateFriendsQueue
+  @queue = :update_friends
+  def self.perform user_id, access_token, is_new, provider
+    user = User.find_by_id(user_id)
     return if user.nil?
-    user.fetch_fb_friends
+
+    if provider == FACEBOOK_PROVIDER
+      user.fetch_fb_friends is_new
+    elsif provider == GPP_PROVIDER
+      user.fetch_gpp_friends access_token, is_new
+    end
   end
 end
 
