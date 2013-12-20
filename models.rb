@@ -199,7 +199,7 @@ class User < ActiveRecord::Base
       social_ids << item['id']
       next if friend.nil?
       
-      Friendship.generate_friendship self, friend, self.fb_id, friend.fb_id, FACEBOOK_PROVIDER
+      Friendship.generate_friendship self, friend, self.fb_id, friend.fb_id, Friendship::FACEBOOK_PROVIDER
     end
 
     #TODO this is expensive, change 
@@ -229,7 +229,7 @@ class User < ActiveRecord::Base
       social_ids << gpp_id
       next unless friend
 
-      Friendship.generate_friendship self, friend, self.gpp_id, friend.gpp_id, GPP_PROVIDER, is_new
+      Friendship.generate_friendship self, friend, self.gpp_id, friend.gpp_id, Friendship::GPP_PROVIDER, is_new
     end
 
     if social_ids.empty?
@@ -305,18 +305,18 @@ class Friendship < ActiveRecord::Base
 
   class << self
     def generate_friendship user_1, user_2, user_1_id, user_2_id, kind, new
-      f_1_2 = user_1.find_or_initialize_by_friend_id_and_provider_and_social_id(user_2.id,
-                                                                                kind,
-                                                                                user_2_id)
+      f_1_2 = user_1.friendships.find_or_initialize_by_friend_id_and_provider_and_social_id(user_2.id,
+                                                                                        kind,
+                                                                                        user_2_id)
 
       f_1_2_new = f_1_2.new_record? && !new
       f_1_2.first_name = user_2.first_name
       f_1_2.last_name = user_2.last_name
       f_1_2.save
 
-      f_2_1 = user_2.find_or_initialize_by_friend_id_and_provider_and_social_id(user_1.id, 
-                                                                                kind,
-                                                                                user_1_id)
+      f_2_1 = user_2.friendships.find_or_initialize_by_friend_id_and_provider_and_social_id(user_1.id, 
+                                                                                        kind,
+                                                                                        user_1_id)
       f_2_1_new = f_2_1.new_record?
       f_2_1.first_name = user_1.first_name
       f_2_1.last_name = user_1.last_name
@@ -635,13 +635,13 @@ class Token < ActiveRecord::Base
       if resp[:new_user]
         #get friendships for signup first time
         Resque.enqueue(UpdateFriendsQueue, resp[:user].id, nil,
-                       true, FACEBOOK_PROVIDER)
+                       true, Friendship::FACEBOOK_PROVIDER)
       end
     elsif provider == 'gpp'
       resp = self.auth_gpp(access_token)
       #get gpp friendships every time
       Resque.enqueue(UpdateFriendsQueue, resp[:user].id, access_token,
-                     resp[:new_user], GPP_PROVIDER)
+                     resp[:new_user], Friendship::GPP_PROVIDER)
     else
       err 403, 'forbidden'
     end

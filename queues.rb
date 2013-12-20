@@ -115,9 +115,9 @@ class UpdateFriendsQueue
     user = User.find_by_id(user_id)
     return if user.nil?
 
-    if provider == FACEBOOK_PROVIDER
+    if provider == Friendship::FACEBOOK_PROVIDER
       user.fetch_fb_friends is_new
-    elsif provider == GPP_PROVIDER
+    elsif provider == Friendship::GPP_PROVIDER
       user.fetch_gpp_friends access_token, is_new
     end
   end
