@@ -278,17 +278,6 @@ class User < ActiveRecord::Base
     name || ''
   end    
 
-  def get_friends
-    sql = Friendship
-      .select([:provider, :social_id, :first_name, :last_name])
-      .where('user_id = ?', self.id)
-      .to_sql
-
-    data = ActiveRecord::Base.connection.select_all(sql)
-
-    data
-  end
-
   before_save do |obj|
     obj.fb_data = {} if obj.fb_data.blank?
     obj.gpp_data = {} if obj.gpp_data.blank?

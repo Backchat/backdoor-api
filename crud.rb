@@ -140,11 +140,6 @@ delete '/gabs/:gab_id/messages/:message_id' do
 end
 
 get '/friends' do
-  #TODO make this happen when you sign up...
-  if @user.friendships.count == 0
-    @user.fetch_friends
-  end
-
   ok :friends => @user.friendships.map{|f| f.as_json["friendship"]}
 end
 
