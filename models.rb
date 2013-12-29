@@ -36,7 +36,7 @@ class User < ActiveRecord::Base
         :settings => self.settings,
         :available_clues => self.available_clues,
         :id => self.id,
-        :full_name => self.get_name
+        :full_name => self.name
       }
     }
   end
@@ -80,7 +80,7 @@ class User < ActiveRecord::Base
           #old
           :type => 'facebook',
           :value => user.fb_id,
-          :name => user.get_name,
+          :name => user.name,
 
           #new
           :first_name => user.first_name,
@@ -94,7 +94,7 @@ class User < ActiveRecord::Base
         item = {
           :type => 'gpp',
           :value => user.gpp_id,
-          :name => user.get_name,
+          :name => user.name,
 
           #new
           :first_name => user.first_name,
@@ -217,8 +217,8 @@ class User < ActiveRecord::Base
     self.friendships.group_by('friend_id')
   end
 
-  def get_name
-    "#{first_name} #{last_name}"
+  def name
+    has_name? ? "#{first_name} #{last_name}" : ""
   end
 
   def display_name_parts

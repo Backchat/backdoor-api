@@ -66,7 +66,7 @@ class FeedbackDeliveryQueue
     return if fb.nil?
 
     user = fb.user
-    user_name = user.get_name || 'Anonymous user'
+    user_name = user.name || 'Anonymous user'
     from = "%s <%s>" % [user_name, user.email]
 
     body = fb.content
@@ -92,7 +92,7 @@ class AbuseReportDeliveryQueue
     return if ar.nil?
 
     user = ar.user
-    user_name = user.get_name || 'Anonymous user'
+    user_name = user.name || 'Anonymous user'
     from = "%s <%s>" % [user_name, user.email]
 
     body = ar.content

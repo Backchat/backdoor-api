@@ -59,7 +59,7 @@ post '/login' do
 
   user.save
 
-  name = user.get_name
+  name = user.name
   ok user: {new_user: new_user, available_clues: user.available_clues, settings: user.settings, id: user.id, full_name: name}
 end
 
