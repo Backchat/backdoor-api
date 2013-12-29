@@ -1,20 +1,19 @@
-
 before do
   return if ['/admin', '/images', '/ping', '/fb-update', '/login'].include? request.path
 
-  access_token = params[:access_token]
+  @access_token = params[:access_token]
 
-  err 401, 'invalid token' if access_token.nil?
+  err 401, 'invalid token' if @access_token.nil?
 
-  access_token = access_token.gsub('%2F', '/')
+  @access_token = @access_token.gsub('%2F', '/')
 
   blitz_token = params[:blitz_token]
   @blitz_mode = (blitz_token == BLITZ_TOKEN)
 
-  token = Token.token_authenticate(access_token)
+  token = Token.token_authenticate(@access_token)
 
   if token.nil?
-    puts "bad token #{access_token}"
+    puts "bad token #{@access_token}"
     return err 401, 'invalid token'
   else
     @user = token.user
@@ -50,21 +49,17 @@ post '/login' do
   #new clients do this in POST later
   unless params[:fb_data].blank?
     fb_data = JSON.parse(params[:fb_data])
-    if user.fb_data != fb_data && !fb_data.blank?
-      user.fb_data = fb_data
-    end
+    update_fb_data(user, access_token, fb_data)
   end
 
   unless params[:gpp_data].blank?
     gpp_data = JSON.parse(params[:gpp_data])
-    if user.gpp_data != gpp_data && !gpp_data.blank?
-      user.gpp_data = gpp_data
-    end
+    update_gpp_data(user, access_token, gpp_data)
   end
 
   user.save
 
-  name = user.get_name #TODO perf
+  name = user.get_name
   ok user: {new_user: new_user, available_clues: user.available_clues, settings: user.settings, id: user.id, full_name: name}
 end
 

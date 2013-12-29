@@ -41,7 +41,7 @@ namespace :db do
       :registered => true,
       :fb_data => {}
     })
-  end
+  end  
 end
 
 require 'rake/testtask'

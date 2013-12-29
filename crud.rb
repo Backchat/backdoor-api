@@ -151,22 +151,24 @@ end
 
 post '/' do
   #TODO test
-  #update fb_data, gpp_data
-  fb_data = JSON.parse(params[:fb_data]) unless params[:fb_data].blank?
-  gpp_data = JSON.parse(params[:gpp_data]) unless params[:gpp_data].blank?
-  if params[:settings]
-    @user.settings["message_preview"] = params[:settings][:message_preview]
+  unless params[:fb_data].blank?
+    fb_data = JSON.parse(params[:fb_data])
+    update_fb_data(@user, false, @access_token, fb_data)
     @user.save
     return ok
   end
 
-  if !fb_data && !gpp_data
-    return invalid_request
-  else
-    @user.fb_data = fb_data
-    @user.gpp_data = gpp_data
+  unless params[:gpp_data].blank?
+    gpp_data = JSON.parse(params[:gpp_data]) 
+    update_gpp_data(@user, false, @access_token, gpp_data)
     @user.save
-    ok
+    return ok
+  end
+
+  if params[:settings]
+    @user.settings["message_preview"] = params[:settings][:message_preview]
+    @user.save
+    return ok
   end
 end
 

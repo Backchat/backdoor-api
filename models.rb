@@ -13,9 +13,12 @@ class User < ActiveRecord::Base
   has_many :devices, :dependent => :destroy
   has_many :purchases, :dependent => :destroy
   has_many :clues, :dependent => :destroy
+  #TODO get rid of using actual access tokens as login tokens
+  #TODO at some point get rid of fb_data and gpp_data  
   has_many :gabs, :dependent => :destroy, :order => "updated_at DESC"
   has_many :messages, :dependent => :destroy, :order => "created_at DESC"
   #TODO: when fb_id is changed, destroy all facebook friendships; fetch friends when fb_id is set
+  #TODO : same for gpp_id ...
   has_many :friendships, :dependent => :destroy
   has_many :incoming_friendships, :class_name => 'Friendship', :dependent => :destroy, :foreign_key => 'friend_id'
 
@@ -33,37 +36,41 @@ class User < ActiveRecord::Base
         :settings => self.settings,
         :available_clues => self.available_clues,
         :id => self.id,
-        :full_name => self.get_name #perf TODO
+        :full_name => self.get_name
       }
     }
+  end
+
+  def update_first_name(trial_first)
+    self.first_name = trial_first unless trial_first.nil? || trial_first.empty?
+  end
+
+  def update_last_name(trial_last)
+    self.last_name = trial_last unless trial_last.nil? || trial_last.empty?
+  end
+
+  def update_fb_data(data)
+    self.fb_data = data unless fb_data.nil? || fb_data.blank?
+    update_first_name(self.fb_data['first_name'])
+    update_last_name(self.fb_data['last_name'])
+  end
+
+  def update_gpp_data(data)
+    self.gpp_data = data unless fb_data.nil? || fb_data.blank?    
+    trial_first_name = self.gpp_data['firstName']
+    trial_first_name = display_name_parts[0] unless trial_first_name
+    update_first_name(trial_first_name)
+    trial_last_name = self.gpp_data['lastName']
+    trial_last_name = display_name_parts[1] unless trial_last_name
+    update_last_name(trial_last_name)
   end
 
   def self.find_by_params(param_obj) 
     return User.find_by_id(param_obj[:id])
   end
 
-  def self.my_find_or_create(fb_id, gpp_id, email, phone, fake = false)
-    user = User.find_or_create_by_fb_id(fb_id) unless fb_id.blank?
-    user = User.find_or_create_by_gpp_id(gpp_id) unless gpp_id.blank?
-    user = User.find_or_create_by_email(email) unless user || email.blank?
-    user = User.find_or_create_by_phone(phone) unless user || phone.blank?
-
-    return if user.nil?
-
-    user.autocreated = true unless user.registered
-    user.fb_id = fb_id if user.fb_id.blank? && !fb_id.blank?
-    user.gpp_id = gpp_id if user.gpp_id.blank? && !gpp_id.blank?
-    user.email = email if user.email.blank? && !email.blank?
-    user.phone = phone if user.phone.blank? && !phone.blank?
-    user.fb_data = { 'email' => (email || ''), 'id' => (fb_id || '') } if user.fb_data == {}
-    user.gpp_data = { 'email' => (email || ''), 'id' => (gpp_id || '') } if user.gpp_data == {}
-    user.fake = fake
-    user.save
-
-    user
-  end
-
   def self.dump_featured(current_user)
+    #TODO fix this guy
     ret = []
     User.where(:featured => true).each_with_index do |user, count|
       next if user.id == current_user.id
@@ -89,7 +96,6 @@ class User < ActiveRecord::Base
           :value => user.gpp_id,
           :name => user.get_name,
 
-          #new
           #new
           :first_name => user.first_name,
           :last_name => user.last_name,
@@ -118,6 +124,11 @@ class User < ActiveRecord::Base
     gabs.sum(:unread_count)
   end
 
+  def has_name
+    !first_name.blank? || !last_name.blank?
+  end
+
+  #TODO send to database
   def avatar_url
     if !self.fb_id.blank?
       return 'https://graph.facebook.com/%s/picture?width=90&height=90' % self.fb_id
@@ -138,44 +149,6 @@ class User < ActiveRecord::Base
 
     gab = Gab.my_create(self, sender, 'Backdoor', '')
     gab.create_message('Welcome to Backdoor!', MESSAGE_KIND_TEXT, false, random_key)
-  end
-
-  #unused right now
-  def email_message(msg)
-    ActiveRecord::Base.logger.info 'Delivering email to %s' % email
-    Pony.mail(
-      :to => email,
-      :via => :smtp,
-      :via_options => SMTP_SETTINGS,
-      :subject => 'Backdoor Message',
-      :from => 'Backdoor <noreply@backdoorapp.com>',
-      :reply_to => 'noreply@backdoorapp.com',
-      :body => msg.content + "\n\nYou've been Backdoored"
-    )
-  end
-
-  #unused right now
-  def sms_message(msg, phone_number)
-    if msg.kind != MESSAGE_KIND_TEXT
-      related_gab = msg.gab.related_gab
-      related_gab.create_message("ERROR_SMS_PHOTO_DELIVERY", MESSAGE_KIND_TEXT, false, random_key)
-      return
-    end
-
-    client = Twilio::REST::Client.new TWILIO_SID, TWILIO_TOKEN
-    begin
-      to = Phony.formatted(phone_number, :format => :international, :spaces => '')
-      ActiveRecord::Base.logger.info 'Delivering sms to %s' % to
-      client.account.sms.messages.create(
-        :from => TWILIO_NUMBER,
-        :to => to,
-        :body => msg.content
-      )
-    rescue
-      ActiveRecord::Base.logger.error $!.class.to_s + ': ' + $!.message
-      ActiveRecord::Base.logger.error $!.backtrace.join("\n")
-      msg.gab.related_gab.create_message("ERROR_SMS_DELIVERY", MESSAGE_KIND_TEXT, false, random_key)
-    end
   end
 
   def fetch_fb_friends(is_new)
@@ -237,15 +210,18 @@ class User < ActiveRecord::Base
     else
       #TODO eexepsnvie
       self.friendships.gpp.where('social_id NOT IN (?)', social_ids).destroy_all
-    end
-    
+    end    
+  end
+
+  def unique_friendships
+    self.friendships.group_by('friend_id')
   end
 
   def get_name
     "#{first_name} #{last_name}"
   end
 
-  def displayNameParts
+  def display_name_parts
     if gpp_data && gpp_data['displayName'] 
       parts = gpp_data['displayName'].split
       if parts.length >= 2
@@ -253,30 +229,8 @@ class User < ActiveRecord::Base
       end
     end
     
-    ['', '']
+    [nil, nil]
   end
-
-  def first_name
-    if fb_data
-      name = fb_data['first_name'] 
-    end
-    if gpp_data
-      name = gpp_data['firstName'] 
-      displayNameParts.first unless name
-    end
-    name || ''
-  end
-
-  def last_name
-    if fb_data
-      name = fb_data['last_name'] 
-    end
-    if gpp_data
-      name = gpp_data['lastName'] 
-      displayNameParts.last unless name
-    end
-    name || ''
-  end    
 
   before_save do |obj|
     obj.fb_data = {} if obj.fb_data.blank?
@@ -306,17 +260,20 @@ class Friendship < ActiveRecord::Base
   class << self
     def generate_friendship user_1, user_2, user_1_id, user_2_id, kind, new
       f_1_2 = user_1.friendships.find_or_initialize_by_friend_id_and_provider_and_social_id(user_2.id,
-                                                                                        kind,
-                                                                                        user_2_id)
+                                                                                            kind,
+                                                                                            user_2_id)      
+      f_1_2 = user_1.friendships.find_by_friend_id(user_2.id)
 
       f_1_2_new = f_1_2.new_record? && !new
       f_1_2.first_name = user_2.first_name
       f_1_2.last_name = user_2.last_name
       f_1_2.save
 
-      f_2_1 = user_2.friendships.find_or_initialize_by_friend_id_and_provider_and_social_id(user_1.id, 
-                                                                                        kind,
-                                                                                        user_1_id)
+      f_2_1 = user_2.friendships.find_or_initialize_by_friend_id_and_provider_and_social_id(user_1.id,
+                                                                                            kind,
+                                                                                            user_1_id)
+      f_2_1 = user_2.friendships.find_by_friend_id(user_1.id)
+
       f_2_1_new = f_2_1.new_record?
       f_2_1.first_name = user_1.first_name
       f_2_1.last_name = user_1.last_name
@@ -324,11 +281,11 @@ class Friendship < ActiveRecord::Base
 
       f_1_2.enqueue_new_friend_notification if f_1_2_new
       f_2_1.enqueue_new_friend_notification if f_2_1_new
-    end      
+    end
   end
                                                                         
   def enqueue_new_friend_notification
-    message =  "#{first_name} #{last_name} just joined Backdoor!"
+    message = "#{name} just joined Backdoor!"
 
     hash = {
       apn_device_tokens: self.user.devices.where(kind: Device::APPLE).map {|d| d.device_token},
@@ -349,9 +306,7 @@ class Friendship < ActiveRecord::Base
     }
 
     Resque.enqueue(FriendNotificationQueue, hash)
-
   end
-
 end
 
 class Time
@@ -632,16 +587,8 @@ class Token < ActiveRecord::Base
   def self.authenticate(access_token, provider)
     if provider == 'facebook'
       resp = self.auth_fb(access_token)
-      if resp[:new_user]
-        #get friendships for signup first time
-        Resque.enqueue(UpdateFriendsQueue, resp[:user].id, nil,
-                       true, Friendship::FACEBOOK_PROVIDER)
-      end
     elsif provider == 'gpp'
       resp = self.auth_gpp(access_token)
-      #get gpp friendships every time
-      Resque.enqueue(UpdateFriendsQueue, resp[:user].id, access_token,
-                     resp[:new_user], Friendship::GPP_PROVIDER)
     else
       err 403, 'forbidden'
     end
