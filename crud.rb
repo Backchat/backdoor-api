@@ -33,12 +33,7 @@ post '/gabs' do
     r_user = User.find(id)
     return invalid_request if r_user.nil? || r_user == @user
 
-    #TODO refactor this fuck
-    if r_user.fb_id.present?
-      related_name = r_user.fb_data['name'] || ''
-    elsif r_user.gpp_id.present?
-      related_name = r_user.gpp_data['displayName'] || ''
-    end
+    related_name = r_user.name
   else
     return invalid_request
   end
@@ -152,15 +147,17 @@ end
 post '/' do
   #TODO test
   unless params[:fb_data].blank?
-    fb_data = JSON.parse(params[:fb_data])
-    update_fb_data(@user, false, @access_token, fb_data)
+    input = params[:fb_data].encode('UTF-8', 'binary', invalid: :replace, undef: :replace, replace: '')
+    fb_data = JSON.parse(input)
+    update_fb_data(@user, @access_token, fb_data)
     @user.save
     return ok
   end
 
   unless params[:gpp_data].blank?
-    gpp_data = JSON.parse(params[:gpp_data]) 
-    update_gpp_data(@user, false, @access_token, gpp_data)
+    input = params[:gpp_data].encode('UTF-8', 'binary', invalid: :replace, undef: :replace, replace: '')
+    gpp_data = JSON.parse(input)
+    update_gpp_data(@user, @access_token, gpp_data)
     @user.save
     return ok
   end

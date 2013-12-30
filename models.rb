@@ -50,13 +50,13 @@ class User < ActiveRecord::Base
   end
 
   def update_fb_data(data)
-    self.fb_data = data unless fb_data.nil? || fb_data.blank?
+    self.fb_data = data unless data.nil? || data.blank?
     update_first_name(self.fb_data['first_name'])
     update_last_name(self.fb_data['last_name'])
   end
 
   def update_gpp_data(data)
-    self.gpp_data = data unless fb_data.nil? || fb_data.blank?    
+    self.gpp_data = data unless data.nil? || data.blank?    
     trial_first_name = self.gpp_data['firstName']
     trial_first_name = display_name_parts[0] unless trial_first_name
     update_first_name(trial_first_name)
@@ -124,7 +124,7 @@ class User < ActiveRecord::Base
     gabs.sum(:unread_count)
   end
 
-  def has_name
+  def has_name?
     !first_name.blank? || !last_name.blank?
   end
 
@@ -172,7 +172,7 @@ class User < ActiveRecord::Base
       social_ids << item['id']
       next if friend.nil?
       
-      Friendship.generate_friendship self, friend, self.fb_id, friend.fb_id, Friendship::FACEBOOK_PROVIDER
+      Friendship.generate_friendship self, friend, self.fb_id, friend.fb_id, Friendship::FACEBOOK_PROVIDER, is_new
     end
 
     #TODO this is expensive, change 
@@ -233,8 +233,6 @@ class User < ActiveRecord::Base
   end
 
   before_save do |obj|
-    obj.fb_data = {} if obj.fb_data.blank?
-    obj.gpp_data = {} if obj.gpp_data.blank?
     obj.settings = USER_DEFAULT_SETTINGS if obj.settings.blank?
   end
 end
@@ -262,7 +260,6 @@ class Friendship < ActiveRecord::Base
       f_1_2 = user_1.friendships.find_or_initialize_by_friend_id_and_provider_and_social_id(user_2.id,
                                                                                             kind,
                                                                                             user_2_id)      
-      f_1_2 = user_1.friendships.find_by_friend_id(user_2.id)
 
       f_1_2_new = f_1_2.new_record? && !new
       f_1_2.first_name = user_2.first_name
@@ -272,7 +269,6 @@ class Friendship < ActiveRecord::Base
       f_2_1 = user_2.friendships.find_or_initialize_by_friend_id_and_provider_and_social_id(user_1.id,
                                                                                             kind,
                                                                                             user_1_id)
-      f_2_1 = user_2.friendships.find_by_friend_id(user_1.id)
 
       f_2_1_new = f_2_1.new_record?
       f_2_1.first_name = user_1.first_name
@@ -443,8 +439,8 @@ class Gab < ActiveRecord::Base
       clues.create(
         :user => self.user,
         :number => i,
-        :field => item[0].to_s,
-        :value => item[1]
+        :field => item.kind.to_s,
+        :value => item.value
       )
     end
   end
@@ -538,18 +534,15 @@ class Token < ActiveRecord::Base
     user = User.find_by_email(data['email']) unless user
     user = User.create unless user
 
-    fb_data = user.fb_data.blank? ? data : user.fb_data.update(data)
-
     new_user = !user.registered
 
     user.update_attributes(
       :email => data['email'] || '',
       :fb_id => data['id'],
-      :fb_data => fb_data,
       :registered => true
     )
 
-    { :user => user, :new_user => new_user, :full_name => data['name'] }
+    { :user => user, :new_user => new_user }
   end
 
   def self.auth_gpp(access_token)
@@ -565,14 +558,11 @@ class Token < ActiveRecord::Base
     user = User.find_by_email(data['email']) unless user
     user = User.create unless user
 
-    gpp_data = user.gpp_data.blank? ? data : user.gpp_data.update(data)
-
     new_user = !user.registered
 
     user.update_attributes(
       :email => data['email'],
       :gpp_id => data['user_id'],
-      :gpp_data => gpp_data,
       :registered => true
     )
 

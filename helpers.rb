@@ -40,20 +40,20 @@ def random_key
 end
 
 def update_fb_data(user, access_token, fb_data)
-  has_name_already = user.has_name
+  has_name_already = user.has_name?
   user.update_fb_data(fb_data)
 
-  if user.has_name
-    Resque.enqueue(UpdateFriendsQueue, user.id, nil,
+  if user.has_name?
+    Resque.enqueue(UpdateFriendsQueue, user.id, access_token,
                    !has_name_already, Friendship::FACEBOOK_PROVIDER)
   end
 end
 
 def update_gpp_data(user, access_token, gpp_data)
-  has_name_already = user.has_name
+  has_name_already = user.has_name?
   user.update_gpp_data(gpp_data)
 
-  if user.has_name
+  if user.has_name?
     #get gpp friendships every time
     Resque.enqueue(UpdateFriendsQueue, user.id, access_token,
                    !has_name_already, Friendship::GPP_PROVIDER)
