@@ -246,7 +246,7 @@ post '/fb-update' do
     next unless uid
     user = User.find_by_fb_id(uid)
     next unless user
-    Resque.enqueue(UpdateFriendsQueue, user.id, nil, false, FACEBOOK_PROVIDER)
+    Resque.enqueue(UpdateFriendsQueue, user.id, nil, false, Friendship::FACEBOOK_PROVIDER)
   end
   ok {}
 end
