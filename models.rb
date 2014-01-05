@@ -41,6 +41,11 @@ class User < ActiveRecord::Base
     }
   end
 
+  def update_from_db_name
+    self.update_fb_data(self.fb_data) unless self.fb_data.nil?
+    self.update_gpp_data(self.gpp_data) unless self.gpp_data.nil?
+  end
+
   def update_first_name(trial_first)
     self.first_name = trial_first unless trial_first.nil? || trial_first.empty?
   end
@@ -257,6 +262,16 @@ class Friendship < ActiveRecord::Base
 
   class << self
     def generate_friendship user_1, user_2, user_1_id, user_2_id, kind, new
+      unless user_1.has_name?
+        user_1.update_from_db_name
+        user_1.save if user_1.has_name?
+      end
+
+      unless user_2.has_name?
+        user_2.update_from_db_name
+        user_2.save if user_2.has_name?
+      end
+
       f_1_2 = user_1.friendships.find_or_initialize_by_friend_id_and_provider_and_social_id(user_2.id,
                                                                                             kind,
                                                                                             user_2_id)      
