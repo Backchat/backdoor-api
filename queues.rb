@@ -184,7 +184,7 @@ class InviteSMSQueue
         if br_zones.include? zone
           # this is a inter-country BR call
           rest_of_number = to[5..-1]
-          real_number = "+55" + zone + rest_of_number
+          real_number = "+55#{zone}#{rest_of_number}"
           br = true
         end
       end
