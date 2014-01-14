@@ -17,7 +17,6 @@ class NotificationQueue
     if hash["gcm_device_tokens"].present?
       gcm_pusher = GCM.new(GCM_SECRET_KEY)
       gcm_pusher.push hash["gcm_device_tokens"], hash["google_hash"]
-      gcm_pusher.close
     end
   end
 end
@@ -176,12 +175,12 @@ class InviteSMSQueue
     elsif to.starts_with? "0" 
       #this may be a international text number, or a BR inter-country number...
       next_two_digits = to[1,2]
-      value = Integer(next_to_digits)
+      value = Integer(next_two_digits)
       br = false
       if br_operators.include? value
         # the next two digits ought to be the city code
         next_two_digits = to[3,2]
-        zone = Integer(next_to_digits)
+        zone = Integer(next_two_digits)
         if br_zones.include? zone
           # this is a inter-country BR call
           rest_of_number = to[5..-1]
