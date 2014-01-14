@@ -142,17 +142,17 @@ end
 
 class InviteSMSQueue
   @queue = :invite_sms
-
-  br_operators = [96, 51, 27, 28, 98, 85, 84, 14, 47, 49, 65, 32,
+  
+  def self.perform i_id
+    br_operators = [96, 51, 27, 28, 98, 85, 84, 14, 47, 49, 65, 32,
                   12, 71, 12, 36, 35, 21, 19, 56, 91, 13, 10, 45,
                   37, 42, 25, 63, 87, 46, 26, 23, 57, 89, 11, 52,
                   72, 95, 65, 61, 31, 53, 62, 48, 24, 69, 43, 81,
                   18, 54, 34, 41, 17, 16, 38, 75, 15, 58]
-
-  br_zones = [ 79, 91, 31, 95, 61, 67, 65, 48, 85, 62, 83, 43, 96, 82,
+    
+    br_zones = [ 79, 91, 31, 95, 61, 67, 65, 48, 85, 62, 83, 43, 96, 82,
                92, 84, 63, 51, 69, 81, 68, 21, 71, 98, 11, 86, 27]
 
-  def self.perform i_id
     invite = Invitation.find_by_id(i_id)
     return unless invite
     client = Twilio::REST::Client.new TWILIO_SID, TWILIO_TOKEN
