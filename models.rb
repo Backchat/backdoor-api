@@ -173,10 +173,11 @@ class User < ActiveRecord::Base
 
     data['data'].each do |item|
       next unless item['id']
-      friend = User.find_by_fb_id(item['id'])
       social_ids << item['id']
-      next if friend.nil?
-      
+    end
+
+    valid_users = User.find_all_by_fb_id(social_ids)
+    valid_users.each do |friend|
       Friendship.generate_friendship self, friend, self.fb_id, friend.fb_id, Friendship::FACEBOOK_PROVIDER, is_new
     end
 
@@ -199,14 +200,14 @@ class User < ActiveRecord::Base
     items = data['items']
 
     social_ids = []
-    
     items.each do |item|
       gpp_id = item['id']
       next unless gpp_id
-      friend = User.find_by_gpp_id(gpp_id)
       social_ids << gpp_id
-      next unless friend
+    end
 
+    valid_users = User.find_all_by_gpp_id(social_ids)
+    valid_users.each do |friend|
       Friendship.generate_friendship self, friend, self.gpp_id, friend.gpp_id, Friendship::GPP_PROVIDER, is_new
     end
 
@@ -219,7 +220,7 @@ class User < ActiveRecord::Base
   end
 
   def unique_friendships
-    self.friendships.group_by('friend_id')
+    self.friendships
   end
 
   def name
