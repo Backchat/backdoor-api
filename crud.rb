@@ -38,13 +38,16 @@ post '/gabs' do
     return invalid_request
   end
 
-  gab = Gab.my_create(@user, r_user, related_name, r_user.phone) #TODO fix my_create 
-  message = gab.create_message_from_params(message_params)  
-  
-  #TODO make tests pass here, fix this ugly, DRY with get, put in model
-  hsh = gab.as_json
-  hsh["gab"]["messages"] = [message.as_json()["message"]]
-  ok hsh
+  ActiveRecord::Base.transaction do
+    gab = Gab.my_create(@user, r_user, related_name, r_user.phone) #TODO fix my_create 
+    message = gab.create_message_from_params(message_params)  
+    
+    hsh = gab.as_json
+    hsh["gab"]["messages"] = [message.as_json()["message"]]
+    return ok hsh
+  end
+
+  return invalid_request
 end
 
 ['/gabs/:gab_id', '/gabs/:gab_id/*'].each do |path|
