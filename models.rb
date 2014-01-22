@@ -297,7 +297,7 @@ class Friendship < ActiveRecord::Base
   end
                                                                         
   def enqueue_new_friend_notification
-    message = "#{name} just joined Backdoor!"
+    message = "#{name} just joined Backchat!"
 
     hash = {
       apn_device_tokens: self.user.devices.where(kind: Device::APPLE).map {|d| d.device_token},
@@ -376,8 +376,10 @@ class Gab < ActiveRecord::Base
       # NOTREACHED
     end
 
-    level = ActiveRecord::Base.logger.level
-    ActiveRecord::Base.logger.level = Logger::WARN
+    if BACKDOOR_ENV=='release'
+      level = ActiveRecord::Base.logger.level
+      ActiveRecord::Base.logger.level = Logger::WARN
+    end
 
     if kind == MESSAGE_KIND_PHOTO
       image = Image.create(:data => data, :secret => secret)
@@ -393,7 +395,9 @@ class Gab < ActiveRecord::Base
       :user => user,
     )
 
-    ActiveRecord::Base.logger.level = level
+    if BACKDOOR_ENV=='release'
+      ActiveRecord::Base.logger.level = level
+    end
 
     self.total_count += 1
     self.unread_count += 1 unless sent
