@@ -359,7 +359,6 @@ class Gab < ActiveRecord::Base
 
     gab.update_attributes(:related_gab_id => gab_recv.id)
     gab_recv.create_clues
-
     gab
   end
 
@@ -452,17 +451,18 @@ class Gab < ActiveRecord::Base
 
   def create_clues
     data = DataHelper.new(related_gab.user).avail_clues
+   
+    #we want one insert query please.
+    sql = 'INSERT INTO CLUES ("created_at", "field", "gab_id", "number", "revealed", "updated_at", "user_id", "value") VALUES '
 
-    data.each_index do |i|
-      item = data[i]
+    connection = ActiveRecord::Base.connection
 
-      clues.create(
-        :user => self.user,
-        :number => i,
-        :field => item.kind.to_s,
-        :value => item.value
-      )
-    end
+    sql += data.each_with_index.map {|item, i|
+      "( now(), #{connection.quote item.kind.to_s}, #{self.id}, #{i}, false, now(), #{self.user.id}, #{connection.quote item.value}) "}.join ","
+
+    connection.execute sql
+
+    Gab.update_counters self.id, clue_count: data.count
   end
 end
 
