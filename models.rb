@@ -684,3 +684,23 @@ end
 class Contact < ActiveRecord::Base
   #todo validates number
 end
+
+class FilterSQLLogger < Logger
+  def add_with_truncate(level, msg = nil, procinfo = nil, &block) 
+    unless msg
+      if block_given?
+        msg = yield
+      else
+        msg = procinfo
+      end
+    end
+
+    msg = msg.gsub(/(gpp_data|fb_data)" = '.*'/m, '\1" = \'REDACTED\'')
+
+    add_without_truncate(level, msg)
+  end
+
+  alias_method_chain :add, :truncate
+end
+
+ActiveRecord::Base.logger = FilterSQLLogger.new(STDOUT)
