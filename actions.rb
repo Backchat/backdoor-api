@@ -66,7 +66,7 @@ post '/login' do
 end
 
 get '/featured-users' do
-  ok :users => User.dump_featured(@user)
+  ok :users => User.dump_featured
 end
 
 post '/buy-clues' do

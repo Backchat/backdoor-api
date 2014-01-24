@@ -74,12 +74,9 @@ class User < ActiveRecord::Base
     return User.find_by_id(param_obj[:id])
   end
 
-  def self.dump_featured(current_user)
+  def self.dump_featured
     #TODO fix this guy
-    ret = []
-    User.where(:featured => true).each_with_index do |user, count|
-      next if user.id == current_user.id
-
+    User.where(:featured => true).each_with_index.map do |user, count|
       if !user.fb_id.blank?
         item = {
           #old
@@ -112,11 +109,7 @@ class User < ActiveRecord::Base
       else
         next
       end
-
-      ret << item
     end
-
-    ret
   end
 
   def available_clues
