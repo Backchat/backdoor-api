@@ -450,6 +450,8 @@ class Gab < ActiveRecord::Base
   def create_clues
     data = DataHelper.new(related_gab.user).avail_clues
    
+    return if data.empty?
+
     #we want one insert query please.
     sql = 'INSERT INTO CLUES ("created_at", "field", "gab_id", "number", "revealed", "updated_at", "user_id", "value") VALUES '
 
