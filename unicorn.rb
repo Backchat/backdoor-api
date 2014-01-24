@@ -26,7 +26,7 @@ after_fork do |server, worker|
     ActiveRecord::Base.establish_connection
 
   if defined?(Resque)
-    Resque.redis = ENV['REDIS_URI']
+    Resque.redis = ENV['REDISTOGO_URL']
     puts 'Connected to Redis'
   end
 
