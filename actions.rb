@@ -241,12 +241,13 @@ end
 post '/fb-update' do
   request.body.rewind
   data = JSON.parse(request.body.read)
-  data['entry'].each do |entry|
-    uid = entry['uid']
-    next unless uid
-    user = User.find_by_fb_id(uid)
-    next unless user
-    Resque.enqueue(UpdateFriendsQueue, user.id, nil, false, Friendship::FACEBOOK_PROVIDER)
+  uids = data['entry'].map {|entry|
+    entry['uid']}.compact
+
+  valid_uids = User.select([:id]).find_all_by_fb_id(uids)
+
+  valid_uids.each do |u|
+    Resque.enqueue(UpdateFriendsQueue, u.id, nil, false, Friendship::FACEBOOK_PROVIDER)
   end
   ok {}
 end
