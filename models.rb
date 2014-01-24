@@ -427,8 +427,6 @@ class Gab < ActiveRecord::Base
     message = self.create_message(content, kind, true, key) 
     self.related_gab.create_message(content, kind, false, key)
 
-    self.mark_read #TODO stop doing this
-
     message
   end
 
