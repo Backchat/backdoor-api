@@ -548,7 +548,7 @@ class Token < ActiveRecord::Base
     resp = client.get(url, :access_token => access_token)
     data = JSON.parse(resp.content)
 
-    err 403, 'forbidden' unless data['id']
+    return nil unless data['id']
 
     user = User.find_by_fb_id(data['id'])
     user = User.find_by_email(data['email']) unless user
@@ -572,7 +572,7 @@ class Token < ActiveRecord::Base
     resp = client.get(url, :access_token => access_token, :prettyPrint => true)
     data = JSON.parse(resp.content)
 
-    err 403, 'forbidden' unless data['user_id']
+    return nil unless data['user_id']
 
     user = User.find_by_gpp_id(data['user_id'])
     user = User.find_by_email(data['email']) unless user
@@ -600,8 +600,10 @@ class Token < ActiveRecord::Base
     elsif provider == 'gpp'
       resp = self.auth_gpp(access_token)
     else
-      err 403, 'forbidden'
+      return err 403, 'forbidden'
     end
+
+    return nil unless resp
 
     user = resp[:user]
     new_user = resp[:new_user]

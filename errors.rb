@@ -24,12 +24,12 @@ class ApiSuccess < Exception
 end
 
 def err(code, msg)
-  raise ApiError, [code, msg]
+  status code
+  return resp false, msg
 end
 
 def ok(res = {})
   return resp(true, res)
-  #raise ApiSuccess, res
 end
 
 def resp(ok, data)
@@ -39,16 +39,6 @@ def resp(ok, data)
     'status' => ok ? 'ok' : 'error',
     'response' => data
   }.to_json
-end
-
-error ApiError do
-  status env['sinatra.error'].code
-  resp false, env['sinatra.error'].message
-end
-
-error ApiSuccess do
-  status 200
-  resp true, env['sinatra.error'].data
 end
 
 error ActiveRecord::RecordNotFound  do

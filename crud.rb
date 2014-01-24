@@ -3,7 +3,7 @@
 # before in actions.rb gets us validated and gets us the @user
 
 def invalid_request
-  err 400, 'invalid_request'
+  return err 400, 'invalid_request'
 end
 
 get '/gabs' do
@@ -127,7 +127,7 @@ post '/gabs/:gab_id/clues/request/:number' do
   clue = @gab.clues.find_by_number(number)
   return invalid_request if clue.nil?
   if clue.reveal.nil?
-    err 400, "request failed"
+    return err 400, "request failed"
   else
     hsh = clue.as_json
     hsh[:available_clues] = @user.available_clues

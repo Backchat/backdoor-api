@@ -3,7 +3,7 @@ before do
 
   @access_token = params[:access_token]
 
-  err 401, 'invalid token' if @access_token.nil?
+  return err 401, 'invalid token' if @access_token.nil?
 
   @access_token = @access_token.gsub('%2F', '/')
 
@@ -35,6 +35,8 @@ post '/login' do
   return err 400, "invalid request" unless !provider.blank?
 
   auth = Token.authenticate(access_token, provider)
+
+  return err 400, "invalid request" unless auth
 
   user = auth[0]
   new_user = auth[1]
@@ -107,7 +109,7 @@ def do_apple_receipt
 
   puts data
 
-  err 401, 'invalid receipt' if data['status'] != 0
+  return err 401, 'invalid receipt' if data['status'] != 0
 
   transaction_id = data['receipt']['original_transaction_id']
   transaction_id = data['receipt']['transaction_id'] unless transaction_id
@@ -132,12 +134,12 @@ def do_apple_receipt
 
   
   puts "product: #{product}"
-  err 402, 'invalid product' unless product
+  return err 402, 'invalid product' unless product
 
   pur = Purchase.find_or_create_by_transaction_id(transaction_id)
   puts "purcahse: #{pur}"
 
-  err 403, 'invalid receipt' if pur.user.present? and pur.user_id != @user.id
+  return err 403, 'invalid receipt' if pur.user.present? and pur.user_id != @user.id
 
   revenue = pur.user.nil? ? revenues[product_id] : 0
 
@@ -177,7 +179,7 @@ post '/feedbacks' do
   content = params[:content]
   rating = params[:rating]
 
-  err 400 if content.blank? or rating.blank?
+  return err 400 if content.blank? or rating.blank?
 
   Feedback.create(
     :user => @user,
@@ -195,11 +197,11 @@ end
 get '/images' do
   secret = params[:secret]
 
-  err 400, 'invalid request' if secret.blank?
+  return err 400, 'invalid request' if secret.blank?
 
   image = Image.find_by_secret(secret)
 
-  err 404, 'File not found' if image.nil?
+  return err 404, 'File not found' if image.nil?
 
   content_type image.content_type
   image.data
@@ -207,8 +209,8 @@ end
 
 post '/report-abuse' do
   content = params[:content]
-
-  err 400, 'invalid request' if content.blank?
+  
+  return err 400, 'invalid request' if content.blank?
 
   ar = AbuseReport.create(:content => content, :user => @user)
 
@@ -220,7 +222,7 @@ post '/update-settings' do
   value = params[:value]
   value = JSON.load(value)
 
-  err 400, 'invalid request' if key.blank? or value.blank?
+  return err 400, 'invalid request' if key.blank? or value.blank?
 
   @user.settings[key] = value["value"]
   @user.save
@@ -233,8 +235,8 @@ get '/fb-update' do
   ch = params['hub.challenge']
   token = params['hub.verify_token']
 
-  err 400, 'invalid request' if mode != 'subscribe'
-  err 400, 'invalid request' if token != 'caplabs'
+  return err 400, 'invalid request' if mode != 'subscribe'
+  return err 400, 'invalid request' if token != 'caplabs'
 
   return ch
 end
