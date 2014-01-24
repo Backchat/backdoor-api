@@ -74,6 +74,22 @@ class User < ActiveRecord::Base
     return User.find_by_id(param_obj[:id])
   end
 
+  CACHE_FEATURED_JSON = "featured_cache_json"
+
+  def self.update_featured
+    response = {
+      status: :ok, 
+      response: {
+        users: User.dump_featured
+      }
+    }.to_json
+    Cache.redis.set CACHE_FEATURED_JSON, response
+  end
+
+  def self.get_featured_cached
+    Cache.redis.get(CACHE_FEATURED_JSON) || "[]"
+  end
+
   def self.dump_featured
     #TODO fix this guy
     User.where(:featured => true).each_with_index.map do |user, count|

@@ -66,7 +66,10 @@ post '/login' do
 end
 
 get '/featured-users' do
-  ok :users => User.dump_featured
+  #we directly return the cached text here
+  #see user.update_featured
+  content_type 'application/json'
+  User.get_featured_cached
 end
 
 post '/buy-clues' do
