@@ -96,11 +96,13 @@ get '/gabs/:gab_id/messages' do
 end
 
 post '/gabs/:gab_id/messages' do
-  message = @gab.create_message_from_params(params)
-  if message.nil?
-    return invalid_request
-  else
-    ok :message => message.as_json()["message"], :gab => @gab.as_json()["gab"]
+  ActiveRecord::Base.transaction do
+    message = @gab.create_message_from_params(params)
+    if message.nil?
+      return invalid_request
+    else
+      ok :message => message.as_json()["message"], :gab => @gab.as_json()["gab"]
+    end
   end
 end
 
