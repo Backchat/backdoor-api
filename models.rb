@@ -702,3 +702,5 @@ class FilterSQLLogger < Logger
 end
 
 ActiveRecord::Base.logger = FilterSQLLogger.new(STDOUT)
+use ActiveRecord::QueryCache
+ActiveRecord::Base.connection.enable_query_cache!
