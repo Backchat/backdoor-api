@@ -98,6 +98,7 @@ post '/buy-clues' do
 end
 
 def do_apple_receipt
+  receipt = params[:receipt]
   data = { 'receipt-data' => receipt }.to_json
   url = RECEIPT_VERIFY_URL
   client = HTTPClient.new
